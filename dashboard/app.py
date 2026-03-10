@@ -49,6 +49,7 @@ st.markdown("""
 
     /* ── CONTENT ── */
     .content { padding: 28px 36px; background: #f8fafc; min-height: 100vh; }
+    .block-container { padding-top: 0.5rem !important; padding-left: 2rem !important; padding-right: 2rem !important; }
 
     /* ── PAGE TITLE ── */
     .page-title { font-size: 1.6rem; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
@@ -139,8 +140,6 @@ st.markdown(f"""
     <div class="nav-right">📅 {date.today().strftime('%d %B %Y')}</div>
 </div>
 """, unsafe_allow_html=True)
-
-st.markdown('<div class="content">', unsafe_allow_html=True)
 
 # ── TITRE ─────────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -272,4 +271,3 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
-st.markdown('</div>', unsafe_allow_html=True)
