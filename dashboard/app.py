@@ -10,7 +10,7 @@ st.set_page_config(
     page_title="Nexyla OA Tool",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 st.markdown("""
@@ -19,7 +19,8 @@ st.markdown("""
     * { font-family: 'Inter', sans-serif !important; }
     #MainMenu, footer, header { visibility: hidden; }
     .block-container { padding: 0 !important; max-width: 100% !important; }
-    section[data-testid="stSidebar"] { display: none; }
+    section[data-testid="stSidebar"] { background: #1e1b4b !important; }
+    section[data-testid="stSidebar"] * { color: #e2e8f0 !important; }
 
     /* ── NAVBAR ── */
     .navbar {
@@ -122,6 +123,15 @@ st.markdown("""
     code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #4f46e5; font-size: 0.82rem; }
 </style>
 """, unsafe_allow_html=True)
+
+# ── SIDEBAR NAV ───────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown("## ⚡ Nexyla OA Tool")
+    st.divider()
+    st.page_link("app.py", label="📊 Dashboard OA")
+    st.page_link("pages/1_Calculateur_ROI.py", label="🧮 Calculateur ROI")
+    st.divider()
+    st.caption(f"📅 {date.today().strftime('%d/%m/%Y')}")
 
 deals = get_today_deals()
 total  = len(deals)
