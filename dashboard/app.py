@@ -10,58 +10,111 @@ st.set_page_config(
     page_title="Nexyla OA Tool",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 st.markdown("""
 <style>
-    #MainMenu, footer, header {visibility: hidden;}
-    .block-container {padding-top: 2rem; padding-bottom: 2rem;}
+    #MainMenu, footer {visibility: hidden;}
+    .block-container {padding-top: 1.5rem;}
 
-    .kpi-box {
-        background: #1a1f2e;
-        border-radius: 12px;
-        padding: 20px 16px;
-        text-align: center;
-        border: 1px solid #2d3561;
+    /* Sidebar */
+    section[data-testid="stSidebar"] {
+        background: #1e293b !important;
+        border-right: 1px solid #334155;
     }
-    .kpi-num {font-size: 2rem; font-weight: 800; line-height: 1.1;}
-    .kpi-lbl {font-size: 0.7rem; color: #6b7a99; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px;}
+    section[data-testid="stSidebar"] * {color: #e2e8f0 !important;}
+    section[data-testid="stSidebar"] hr {border-color: #334155;}
 
-    .deal-row {
-        background: #1a1f2e;
+    /* Header band */
+    .nx-header {
+        background: linear-gradient(90deg, #1e40af, #2563eb);
+        border-radius: 12px;
+        padding: 20px 28px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .nx-title {font-size: 1.6rem; font-weight: 800; color: #fff; margin: 0;}
+    .nx-sub {font-size: 0.85rem; color: #bfdbfe; margin-top: 2px;}
+    .nx-date {background: rgba(255,255,255,0.15); color: #fff; border-radius: 20px; padding: 6px 16px; font-size: 0.8rem;}
+
+    /* KPI */
+    .kpi {
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+    }
+    .kpi-num {font-size: 2.2rem; font-weight: 800; line-height: 1.1; color: #0f172a;}
+    .kpi-lbl {font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px;}
+
+    /* Table header */
+    .th {font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.8px; padding: 8px 0; border-bottom: 2px solid #e2e8f0;}
+
+    /* Deal row */
+    .deal-card {
+        background: #fff;
         border-radius: 10px;
+        border: 1px solid #e2e8f0;
         padding: 14px 18px;
         margin-bottom: 8px;
-        border-left: 4px solid #2d3561;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        transition: box-shadow 0.15s;
     }
-    .deal-row.green {border-left-color: #4ade80;}
-    .deal-row.yellow {border-left-color: #fbbf24;}
-    .deal-row.red {border-left-color: #f87171;}
+    .deal-card:hover {box-shadow: 0 4px 12px rgba(37,99,235,0.1); border-color: #93c5fd;}
 
-    .tag {display:inline-block; border-radius:6px; padding:2px 8px; font-size:0.72rem; font-weight:600;}
-    .tag-green {background:#052e16;color:#4ade80;}
-    .tag-yellow {background:#1c1a08;color:#fbbf24;}
-    .tag-red {background:#1c0505;color:#f87171;}
-    .tag-blue {background:#0a1428;color:#4f8eff;}
+    .score-green {background:#dcfce7;color:#15803d;border-radius:20px;padding:3px 10px;font-size:0.72rem;font-weight:700;}
+    .score-yellow {background:#fef9c3;color:#a16207;border-radius:20px;padding:3px 10px;font-size:0.72rem;font-weight:700;}
+    .score-red {background:#fee2e2;color:#dc2626;border-radius:20px;padding:3px 10px;font-size:0.72rem;font-weight:700;}
+    .asin {background:#eff6ff;color:#2563eb;border-radius:5px;padding:2px 7px;font-size:0.72rem;font-family:monospace;}
 
-    .col-header {font-size:0.65rem; color:#6b7a99; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;}
-    .col-val {font-size:1rem; font-weight:600; color:#fff;}
-    .col-sub {font-size:0.75rem; color:#6b7a99;}
-    .red-val {color:#f87171;}
-    .green-val {color:#4ade80;}
+    .val {font-size:0.95rem;font-weight:600;color:#0f172a;}
+    .sub {font-size:0.75rem;color:#94a3b8;}
+    .red {color:#dc2626;font-weight:600;}
+    .green {color:#16a34a;font-weight:600;}
+
+    /* Sidebar nav */
+    .nav-label {font-size:0.65rem;color:#64748b !important;text-transform:uppercase;letter-spacing:1.5px;padding:0 8px;margin-top:16px;}
+    .nav-item {display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:0.88rem;font-weight:500;cursor:pointer;margin:2px 0;}
+    .nav-item.active {background:rgba(37,99,235,0.2) !important;color:#93c5fd !important;}
 </style>
 """, unsafe_allow_html=True)
 
-# ── Header ───────────────────────────────────────────────────────────────────
-col_t, col_d = st.columns([4, 1])
-with col_t:
-    st.markdown("## ⚡ Nexyla OA Tool")
-    st.caption("Sourcing automatique · Amazon FBA France")
-with col_d:
-    st.markdown(f"<div style='text-align:right;color:#6b7a99;padding-top:16px'>{date.today().strftime('%d %B %Y')}</div>", unsafe_allow_html=True)
+# ── Sidebar ───────────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown("## ⚡ Nexyla")
+    st.markdown("**OA Tool** — Sourcing FBA")
+    st.divider()
+    st.markdown("**Navigation**")
+    st.page_link("app.py", label="📊 Dashboard", icon=None)
+    st.page_link("pages/1_Calculateur_ROI.py", label="🧮 Calculateur ROI", icon=None)
+    st.divider()
+    st.markdown("**Statut**")
+    deals_count = 0
+    try:
+        from clients.supabase_client import get_today_deals as _g
+        deals_count = len(_g())
+    except:
+        pass
+    st.metric("Deals aujourd'hui", deals_count)
+    st.caption(f"Mis à jour le {date.today().strftime('%d/%m/%Y')}")
+    st.divider()
+    st.caption("Lance `python main.py` sur ton PC pour scanner les deals.")
 
-st.divider()
+# ── Header ────────────────────────────────────────────────────────────────────
+st.markdown(f"""
+<div class="nx-header">
+    <div>
+        <div class="nx-title">⚡ Nexyla OA Tool</div>
+        <div class="nx-sub">Sourcing automatique · Amazon FBA France</div>
+    </div>
+    <div class="nx-date">📅 {date.today().strftime('%d %B %Y')}</div>
+</div>
+""", unsafe_allow_html=True)
 
 deals = get_today_deals()
 total  = len(deals)
@@ -69,34 +122,28 @@ verts  = sum(1 for d in deals if (d.get("score_deal") or 0) >= 70)
 jaunes = sum(1 for d in deals if 40 <= (d.get("score_deal") or 0) < 70)
 rouges = sum(1 for d in deals if (d.get("score_deal") or 0) < 40)
 
-# ── KPIs ─────────────────────────────────────────────────────────────────────
+# ── KPIs ──────────────────────────────────────────────────────────────────────
 k1, k2, k3, k4 = st.columns(4)
 with k1:
-    st.markdown(f'<div class="kpi-box"><div class="kpi-num" style="color:#4f8eff">{total}</div><div class="kpi-lbl">Deals éligibles</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="kpi"><div class="kpi-num" style="color:#2563eb">{total}</div><div class="kpi-lbl">Deals éligibles</div></div>', unsafe_allow_html=True)
 with k2:
-    st.markdown(f'<div class="kpi-box"><div class="kpi-num" style="color:#4ade80">{verts}</div><div class="kpi-lbl">Score fort ≥ 70</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="kpi"><div class="kpi-num" style="color:#16a34a">{verts}</div><div class="kpi-lbl">Score fort ≥ 70</div></div>', unsafe_allow_html=True)
 with k3:
-    st.markdown(f'<div class="kpi-box"><div class="kpi-num" style="color:#fbbf24">{jaunes}</div><div class="kpi-lbl">Score moyen 40-69</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="kpi"><div class="kpi-num" style="color:#d97706">{jaunes}</div><div class="kpi-lbl">Score moyen 40–69</div></div>', unsafe_allow_html=True)
 with k4:
-    st.markdown(f'<div class="kpi-box"><div class="kpi-num" style="color:#f87171">{rouges}</div><div class="kpi-lbl">Score faible &lt; 40</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="kpi"><div class="kpi-num" style="color:#dc2626">{rouges}</div><div class="kpi-lbl">Score faible &lt; 40</div></div>', unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# ── Empty state ───────────────────────────────────────────────────────────────
 if not deals:
-    st.info("🔍 Aucun deal aujourd'hui — Lance `python main.py` sur ton PC pour démarrer le sourcing.")
+    st.info("🔍 Aucun deal aujourd'hui. Lance `python main.py` sur ton PC pour démarrer le sourcing.")
     st.stop()
 
-# ── En-têtes colonnes ─────────────────────────────────────────────────────────
-h1, h2, h3, h4, h5, h6, h7, h8 = st.columns([1, 3, 1.2, 1, 1.5, 1.2, 1.2, 1.2])
-with h1: st.markdown('<div class="col-header">Score</div>', unsafe_allow_html=True)
-with h2: st.markdown('<div class="col-header">Produit</div>', unsafe_allow_html=True)
-with h3: st.markdown('<div class="col-header">Catégorie</div>', unsafe_allow_html=True)
-with h4: st.markdown('<div class="col-header">BSR</div>', unsafe_allow_html=True)
-with h5: st.markdown('<div class="col-header">Buy Box moy 90j</div>', unsafe_allow_html=True)
-with h6: st.markdown('<div class="col-header">Total frais</div>', unsafe_allow_html=True)
-with h7: st.markdown('<div class="col-header">ROI estimé*</div>', unsafe_allow_html=True)
-with h8: st.markdown('<div class="col-header">Marketplace</div>', unsafe_allow_html=True)
+# ── En-têtes ──────────────────────────────────────────────────────────────────
+h = st.columns([1, 3.5, 1.2, 1, 1.5, 1.2, 1.2, 1.5])
+headers = ["Score", "Produit", "Catégorie", "BSR", "Buy Box moy 90j", "Total frais", "ROI*", "Marketplace"]
+for col, label in zip(h, headers):
+    col.markdown(f'<div class="th">{label}</div>', unsafe_allow_html=True)
 
 MP_FLAGS = {"FR": "🇫🇷", "DE": "🇩🇪", "IT": "🇮🇹", "ES": "🇪🇸"}
 
@@ -113,47 +160,32 @@ for deal in deals:
     mini  = deal.get("buy_box_90j_min_fr") or 0
     frais = deal.get("total_frais") or 0
     gain  = deal.get("gain_vs_fr") or 0
-    lien  = deal.get("lien_google_shopping", "")
 
     if score >= 70:
-        score_tag = f'<span class="tag tag-green">● {score}/100</span>'
-        color_class = "green"
+        badge = f'<span class="score-green">● {score}/100</span>'
     elif score >= 40:
-        score_tag = f'<span class="tag tag-yellow">● {score}/100</span>'
-        color_class = "yellow"
+        badge = f'<span class="score-yellow">● {score}/100</span>'
     else:
-        score_tag = f'<span class="tag tag-red">● {score}/100</span>'
-        color_class = "red"
+        badge = f'<span class="score-red">● {score}/100</span>'
 
     if moy > 0:
         pa_e  = round(moy * 0.7, 2)
         pf_e  = round(moy - frais - pa_e, 2)
         roi_e = round((pf_e / pa_e) * 100, 1) if pa_e > 0 else 0
-        roi_color = "green-val" if roi_e >= 25 else "red-val"
-        roi_html = f'<span class="{roi_color}">{roi_e}%</span>'
+        roi_html = f'<span class="{"green" if roi_e >= 25 else "red"}">{roi_e}%</span>'
     else:
         roi_html = "—"
 
-    gain_html = f'<span class="green-val" style="font-size:0.75rem">+{gain}€</span>' if gain and gain > 0 else ""
+    gain_str = f'<br><span class="green" style="font-size:0.75rem">↑ +{gain}€ vs FR</span>' if gain and gain > 0 else ""
 
-    c1, c2, c3, c4, c5, c6, c7, c8 = st.columns([1, 3, 1.2, 1, 1.5, 1.2, 1.2, 1.2])
-    with c1:
-        st.markdown(score_tag, unsafe_allow_html=True)
-    with c2:
-        st.markdown(f'<div class="col-val" style="font-size:0.85rem">{titre[:45]}{"…" if len(titre)>45 else ""}</div><div class="col-sub"><span class="tag tag-blue">{asin}</span></div>', unsafe_allow_html=True)
-    with c3:
-        st.markdown(f'<div class="col-sub">{cat}</div>', unsafe_allow_html=True)
-    with c4:
-        st.markdown(f'<div class="col-val" style="font-size:0.85rem">#{bsr}</div><div class="col-sub">{fba} FBA</div>', unsafe_allow_html=True)
-    with c5:
-        st.markdown(f'<div class="col-val">{moy}€</div><div class="col-sub">min {mini}€</div>', unsafe_allow_html=True)
-    with c6:
-        st.markdown(f'<div class="col-val red-val">{frais}€</div>', unsafe_allow_html=True)
-    with c7:
-        st.markdown(roi_html, unsafe_allow_html=True)
-    with c8:
-        st.markdown(f'<div class="col-val" style="font-size:0.9rem">{flag} {mp}</div>{gain_html}', unsafe_allow_html=True)
+    c = st.columns([1, 3.5, 1.2, 1, 1.5, 1.2, 1.2, 1.5])
+    with c[0]: st.markdown(badge, unsafe_allow_html=True)
+    with c[1]: st.markdown(f'<div class="val" style="font-size:0.85rem">{titre[:48]}{"…" if len(titre)>48 else ""}</div><div class="sub"><span class="asin">{asin}</span></div>', unsafe_allow_html=True)
+    with c[2]: st.markdown(f'<div class="sub">{cat}</div>', unsafe_allow_html=True)
+    with c[3]: st.markdown(f'<div class="val" style="font-size:0.85rem">#{bsr}</div><div class="sub">{fba} vendeurs</div>', unsafe_allow_html=True)
+    with c[4]: st.markdown(f'<div class="val">{moy}€</div><div class="sub">min {mini}€</div>', unsafe_allow_html=True)
+    with c[5]: st.markdown(f'<div class="red">{frais}€</div>', unsafe_allow_html=True)
+    with c[6]: st.markdown(roi_html, unsafe_allow_html=True)
+    with c[7]: st.markdown(f'<div class="val">{flag} {mp}</div>{gain_str}', unsafe_allow_html=True)
 
-    st.markdown("---")
-
-st.caption("\\* ROI estimé avec prix achat = 70% du Buy Box · Calcul précis → page **Calculateur ROI**")
+st.caption("\\* ROI estimé avec prix achat = 70% du Buy Box · Calcul précis → **Calculateur ROI** dans le menu à gauche")
