@@ -1,6 +1,4 @@
+streamlit
+supabase
 keepa
-playwright
-google-auth
-google-auth-oauthlib
-google-api-python-client
 python-dotenv
