@@ -44,6 +44,34 @@ def get_today_deals() -> list[dict]:
         return []
 
 
+def get_unknown_deals_today() -> list[dict]:
+    """Récupère les deals UNKNOWN du jour (id, asin, titre)."""
+    client = get_client()
+    today = date.today().isoformat()
+    try:
+        response = (
+            client.table("deals")
+            .select("id, asin, titre")
+            .eq("statut", "UNKNOWN")
+            .gte("date_scan", today)
+            .execute()
+        )
+        return response.data or []
+    except Exception as e:
+        print(f"Erreur lecture UNKNOWN deals : {e}")
+        return []
+
+
+def update_deal_statut(asin: str, statut: str):
+    """Met à jour le statut d'un deal par ASIN (deals du jour uniquement)."""
+    client = get_client()
+    today = date.today().isoformat()
+    try:
+        client.table("deals").update({"statut": statut}).eq("asin", asin).gte("date_scan", today).execute()
+    except Exception as e:
+        print(f"Erreur update statut {asin} : {e}")
+
+
 def update_prix_achat(deal_id: str, prix_achat: float):
     """Met à jour le prix d'achat d'un deal."""
     client = get_client()
@@ -62,3 +90,27 @@ def clear_today_deals():
         print("Deals du jour supprimés.")
     except Exception as e:
         print(f"Erreur suppression deals : {e}")
+
+
+def save_run(entry: dict):
+    """Sauvegarde un résumé de run dans la table Supabase 'runs'."""
+    client = get_client()
+    row = {
+        "date":                entry.get("date"),
+        "tokens_before":       entry.get("tokens_before"),
+        "tokens_after":        entry.get("tokens_after"),
+        "tokens_used":         entry.get("tokens_used"),
+        "strategy":            entry.get("strategy"),
+        "deals_found":         entry.get("deals_found", 0),
+        "deals_eligible":      entry.get("deals_eligible", 0),
+        "deals_cross_border":  entry.get("deals_cross_border", 0),
+        "status":              entry.get("status"),
+        "error":               entry.get("error"),
+        "consignes_agent1":    entry.get("consignes_agent1"),
+        "consignes_agent2":    entry.get("consignes_agent2"),
+        "duree_secondes":      entry.get("duree_secondes"),
+    }
+    try:
+        client.table("runs").insert(row).execute()
+    except Exception as e:
+        print(f"[Supabase] Erreur sauvegarde run : {e}")

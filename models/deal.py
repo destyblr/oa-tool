@@ -35,6 +35,7 @@ class Deal:
     # Rentabilité
     marketplace_recommandee: Optional[str] = None
     roi_fr: Optional[float] = None
+    profit_net_fr: Optional[float] = None
     roi_meilleur: Optional[float] = None
     gain_vs_fr: Optional[float] = None
     score_deal: Optional[int] = None
@@ -48,6 +49,10 @@ class Deal:
 
     # Manuel
     prix_achat: Optional[float] = None
+
+    # Données produit
+    weight_g: Optional[float] = None
+    size_tier: Optional[str] = None
 
     # Meta
     date_scan: datetime = field(default_factory=datetime.now)
@@ -76,6 +81,7 @@ class Deal:
             "total_frais": self.total_frais,
             "marketplace_recommandee": self.marketplace_recommandee,
             "roi_fr": self.roi_fr,
+            "profit_net_fr": self.profit_net_fr,
             "roi_meilleur": self.roi_meilleur,
             "gain_vs_fr": self.gain_vs_fr,
             "score_deal": self.score_deal,
@@ -83,4 +89,6 @@ class Deal:
             "ecart_arbitrage": self.ecart_arbitrage,
             "lien_google_shopping": self.lien_google_shopping,
             "prix_achat": self.prix_achat,
+            "weight_g": self.weight_g,
+            "size_tier": self.size_tier,
         }

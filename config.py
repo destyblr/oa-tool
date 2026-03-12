@@ -10,14 +10,34 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 SELLERAMP_EMAIL = os.getenv("SELLERAMP_EMAIL")
 SELLERAMP_PASSWORD = os.getenv("SELLERAMP_PASSWORD")
 
-# Keepa — Filtres produits
-BSR_MAX = 50000
-FBA_SELLERS_MIN = 1
-FBA_SELLERS_MAX = 15
-PRICE_HISTORY_DAYS = 90
-MIN_PRICE_DROP_PERCENT = 5
+# ── Keepa — Filtres produits (onglet Auto) ────────────────────────────────────
+
+# Catégories scannées
+CATEGORIES_TO_SCAN = [
+    "Toys & Games", "Sports & Outdoors", "Kitchen",
+    "Home & Garden", "Electronics", "Pet Supplies", "Office Products",
+]
+
+# Nombre max d'ASINs récupérés par catégorie (1 token Keepa ≈ 1 ASIN)
 MAX_ASINS_PER_RUN = 50
-CATEGORIES_TO_SCAN = ["Toys & Games", "Sports & Outdoors", "Kitchen"]
+
+# --- BSR (classement des ventes) ---
+BSR_MIN = 1_000        # Minimum : évite produits ultra-compétitifs (trop de concurrence)
+BSR_MAX = 50_000       # Maximum : produits qui se vendent suffisamment
+
+# --- Buy Box prix (€) ---
+BUY_BOX_MIN = 15.0     # Min : évite les produits trop bas de gamme (marges trop faibles)
+BUY_BOX_MAX = 200.0    # Max : budget achat raisonnable
+
+# --- Buy Box moyenne 90 jours (€) ---
+BUY_BOX_90J_MIN = 15.0 # Stabilité du prix : évite produits dont le prix s'effondre
+
+# --- Vendeurs FBA ---
+FBA_SELLERS_MIN = 1    # Min : au moins 1 FBA (produit actif sur Amazon)
+FBA_SELLERS_MAX = 15   # Max : pas trop de concurrence
+
+# --- Amazon comme vendeur ---
+EXCLURE_AMAZON_VENDEUR = True  # True = exclure si Amazon est vendeur (deal killer)
 
 # Rentabilité
 MIN_ROI_PERCENT = 25
@@ -62,8 +82,13 @@ MARKETPLACES = ["FR", "DE", "IT", "ES"]
 EFN_DESTINATIONS = ["DE", "IT", "ES"]
 ARBITRAGE_SPREAD_MIN = 15  # % écart minimum pour alerter
 
-# SellerAmp
-SELLERAMP_URL = "https://sas.selleramp.com"
-SELLERAMP_SESSION_PATH = "./credentials/selleramp_session.json"
+# Seller Central
+SC_SESSION_PATH = "./credentials/sc_session.json"
+SC_URL = "https://sellercentral.amazon.fr"
 SELLERAMP_DELAY_MIN = 1.5
 SELLERAMP_DELAY_MAX = 3.0
+
+# Anthropic / Agents Claude AI
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+AGENT_TOKEN_BUDGET = int(os.getenv("AGENT_TOKEN_BUDGET", "200"))
+AGENT_MAX_ITERATIONS = 10

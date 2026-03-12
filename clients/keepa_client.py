@@ -4,16 +4,24 @@ from typing import List, Optional
 from models.deal import Deal
 from utils.fees_calculator import get_size_tier, calculate_total_fees
 from config import (
-    KEEPA_API_KEY, BSR_MAX, FBA_SELLERS_MIN, FBA_SELLERS_MAX,
+    KEEPA_API_KEY,
+    BSR_MIN, BSR_MAX,
+    BUY_BOX_MIN, BUY_BOX_MAX, BUY_BOX_90J_MIN,
+    FBA_SELLERS_MIN, FBA_SELLERS_MAX,
+    EXCLURE_AMAZON_VENDEUR,
     MAX_ASINS_PER_RUN, CATEGORIES_TO_SCAN, ARBITRAGE_SPREAD_MIN,
     EFN_DESTINATIONS
 )
 
-# Mapping catégories Keepa → IDs
+# Mapping catégories → IDs Keepa réels (domain FR=4), récupérés via category_lookup
 KEEPA_CATEGORY_IDS = {
-    "Toys & Games": 553440,
-    "Sports & Outdoors": 325612,
-    "Kitchen": 737082,
+    "Toys & Games":    322086011,   # Jeux et Jouets
+    "Sports & Outdoors": 325614031, # Sports et Loisirs
+    "Kitchen":         57004031,    # Cuisine et Maison
+    "Home & Garden":   3557027031,  # Jardin
+    "Electronics":     13921051,    # High-Tech
+    "Pet Supplies":    1571268031,  # Animalerie
+    "Office Products": 192419031,   # Fournitures de bureau
 }
 
 # Mapping domain Keepa → marketplace
@@ -73,7 +81,7 @@ def get_bsr(product: dict) -> Optional[int]:
     """Récupère le BSR actuel."""
     stats = product.get("stats", {})
     current = stats.get("current", [])
-    if len(current) > 3 and current[3]:
+    if len(current) > 3 and current[3] and current[3] > 0:
         return current[3]
     return None
 
@@ -166,17 +174,18 @@ def fetch_candidates(category_name: str) -> List[Deal]:
     print(f"Recherche Keepa pour : {category_name}...")
 
     try:
-        # product_finder retourne une liste d'ASINs
-        # rootCategory doit être une string, pas un int
-        # Pas de filtre FBA direct — filtré manuellement après
         import keepa as keepa_lib
         params = keepa_lib.ProductParams(
-            rootCategory=str(category_id),
+            categories_include=[category_id],
+            current_SALES_gte=BSR_MIN,
             current_SALES_lte=BSR_MAX,
+            current_BUY_BOX_SHIPPING_gte=int(BUY_BOX_MIN * 100),
+            current_BUY_BOX_SHIPPING_lte=int(BUY_BOX_MAX * 100),
+            availabilityAmazon=0,  # 0 = Amazon pas vendeur actuellement
         )
         asins = api.product_finder(params, domain="FR")
     except Exception as e:
-        print(f"Erreur Keepa : {e}")
+        print(f"Erreur Keepa product_finder : {e}")
         return []
 
     if not asins:
@@ -190,7 +199,7 @@ def fetch_candidates(category_name: str) -> List[Deal]:
         detailed = api.query(
             asins,
             domain="FR",
-            history=True,
+            history=False,
             offers=20,
             stats=90,
         )
@@ -207,11 +216,11 @@ def fetch_candidates(category_name: str) -> List[Deal]:
             categorie = category_name
 
             bsr = get_bsr(product)
-            if not bsr or bsr > BSR_MAX:
+            if not bsr or bsr < BSR_MIN or bsr > BSR_MAX:
                 continue
 
             amazon_stock = amazon_in_stock(product)
-            if amazon_stock:
+            if EXCLURE_AMAZON_VENDEUR and amazon_stock:
                 continue  # Deal killer
 
             nb_fba = count_fba_sellers(product)
@@ -225,6 +234,10 @@ def fetch_candidates(category_name: str) -> List[Deal]:
             buy_box_min = bb_stats_fr["min90"]
 
             if not buy_box_moy:
+                continue
+            if buy_box_moy < BUY_BOX_90J_MIN:
+                continue
+            if buy_box_fr and (buy_box_fr < BUY_BOX_MIN or buy_box_fr > BUY_BOX_MAX):
                 continue
 
             # Poids et dimensions pour frais
