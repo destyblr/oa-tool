@@ -65,6 +65,19 @@ def _get_past_scanned_asins(days_back: int = 7) -> set:
         return set()
 
 
+def _get_next_category() -> tuple[str, int]:
+    """Rotation : 1 catégorie par run, basée sur le nombre total de runs en DB."""
+    categories = list(KEEPA_CATEGORY_IDS.items())
+    client = get_client()
+    try:
+        resp = client.table("runs").select("id", count="exact").execute()
+        total_runs = resp.count or 0
+    except Exception:
+        total_runs = 0
+    idx = total_runs % len(categories)
+    return categories[idx]
+
+
 def _product_to_deal(product: dict, category: str, statut: str, api) -> Deal | None:
     """Construit un Deal depuis un produit Keepa brut. Retourne None si filtres non passés."""
     asin = product.get("asin", "")
@@ -207,86 +220,87 @@ class AcquisitionAgent:
         restricted_brands = {b.lower() for b in restrictions.get("restricted_brands", [])}
         already_scanned = _get_past_scanned_asins()
 
-        # ── Traitement entrelacé : catégorie par catégorie ────────────────────
+        # ── 1 catégorie par run en rotation ───────────────────────────────────
+        cat_name, cat_id = _get_next_category()
+        print(f"[Agent 1] Categorie du run : {cat_name}")
+
         all_deals = []
         done = False
 
-        for cat_name, cat_id in KEEPA_CATEGORY_IDS.items():
-            if done:
-                break
+        tokens_left = getattr(api, "tokens_left", 0)
+        if tokens_left < 5:
+            print(f"[Agent 1] Tokens insuffisants pour product_finder, stop.")
+            self.tokens_end = tokens_left
+            return all_deals
+
+        try:
+            params = keepa_lib.ProductParams(
+                rootCategory=str(cat_id),
+                current_SALES_gte=BSR_MIN,
+                current_SALES_lte=BSR_MAX,
+                current_BUY_BOX_SHIPPING_gte=int(BUY_BOX_MIN * 100),
+                current_BUY_BOX_SHIPPING_lte=int(BUY_BOX_MAX * 100),
+            )
+            asins = list(api.product_finder(params, domain="FR", wait=False))
+            print(f"[Agent 1] {cat_name} : {len(asins)} ASINs trouves")
+            time.sleep(0.2)
+        except Exception as e:
+            print(f"[Agent 1] product_finder {cat_name} : {e}")
+            self.tokens_end = getattr(api, "tokens_left", 0)
+            return all_deals
+
+        for asin in asins:
+            if asin in already_scanned or asin in restricted_asins:
+                continue
 
             tokens_left = getattr(api, "tokens_left", 0)
-            if tokens_left < 5:
-                print(f"[Agent 1] Tokens insuffisants pour product_finder, stop.")
+            if tokens_left < 4:
+                print("[Agent 1] Tokens epuises — stop propre.")
+                done = True
+                break
+
+            statut = check_eligibility(asin)
+            print(f"  {asin} ({cat_name}) -> {statut}")
+
+            if statut in ("RESTRICTED", "HAZMAT"):
+                continue
+
+            tokens_left = getattr(api, "tokens_left", 0)
+            if tokens_left < 1:
+                print("[Agent 1] Tokens epuises — stop propre.")
+                done = True
                 break
 
             try:
-                params = keepa_lib.ProductParams(
-                    rootCategory=str(cat_id),
-                    current_SALES_gte=BSR_MIN,
-                    current_SALES_lte=BSR_MAX,
-                    current_BUY_BOX_SHIPPING_gte=int(BUY_BOX_MIN * 100),
-                    current_BUY_BOX_SHIPPING_lte=int(BUY_BOX_MAX * 100),
+                products = api.query(
+                    [asin], domain="FR", history=False, offers=20, stats=90, wait=False
                 )
-                asins = list(api.product_finder(params, domain="FR", wait=False))
-                print(f"[Agent 1] {cat_name} : {len(asins)} ASINs")
-                time.sleep(0.2)
             except Exception as e:
-                print(f"[Agent 1] product_finder {cat_name} : {e}")
+                print(f"  [Keepa] Erreur fetch FR {asin}: {e}")
+                done = True
                 break
 
-            for asin in asins:
-                if asin in already_scanned or asin in restricted_asins:
-                    continue
+            if not products:
+                continue
 
-                tokens_left = getattr(api, "tokens_left", 0)
-                if tokens_left < 4:
-                    print("[Agent 1] Tokens épuisés — stop propre.")
-                    done = True
-                    break
+            brand = (products[0].get("brand") or "").lower()
+            if brand and brand in restricted_brands:
+                continue
 
-                statut = check_eligibility(asin)
-                print(f"  {asin} ({cat_name}) → {statut}")
+            deal = _product_to_deal(products[0], cat_name, statut, api)
+            if not deal:
+                continue
 
-                if statut in ("RESTRICTED", "HAZMAT"):
-                    continue
+            tokens_left = getattr(api, "tokens_left", 0)
+            if tokens_left >= 3:
+                deal = _enrich_multimarket(deal, api)
+            else:
+                print(f"  [Agent 1] Pas assez de tokens pour multimarket ({tokens_left})")
 
-                tokens_left = getattr(api, "tokens_left", 0)
-                if tokens_left < 1:
-                    print("[Agent 1] Tokens épuisés — stop propre.")
-                    done = True
-                    break
-
-                try:
-                    products = api.query(
-                        [asin], domain="FR", history=False, offers=20, stats=90, wait=False
-                    )
-                except Exception as e:
-                    print(f"  [Keepa] Erreur fetch FR {asin}: {e}")
-                    done = True
-                    break
-
-                if not products:
-                    continue
-
-                brand = (products[0].get("brand") or "").lower()
-                if brand and brand in restricted_brands:
-                    continue
-
-                deal = _product_to_deal(products[0], cat_name, statut, api)
-                if not deal:
-                    continue
-
-                tokens_left = getattr(api, "tokens_left", 0)
-                if tokens_left >= 3:
-                    deal = _enrich_multimarket(deal, api)
-                else:
-                    print(f"  [Agent 1] Pas assez de tokens pour multimarket ({tokens_left})")
-
-                save_deals([deal])
-                all_deals.append(deal)
-                self.deals_saved += 1
-                print(f"  => Sauvegardé ({deal.statut}, ROI {deal.roi_meilleur}%)")
+            save_deals([deal])
+            all_deals.append(deal)
+            self.deals_saved += 1
+            print(f"  => Sauvegarde ({deal.statut}, ROI {deal.roi_meilleur}%)")
 
         self.tokens_end = getattr(api, "tokens_left", 0)
         tokens_used = self.tokens_start - self.tokens_end
