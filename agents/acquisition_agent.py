@@ -34,7 +34,7 @@ from clients.keepa_client import (
     KEEPA_CATEGORY_IDS, KEEPA_DOMAINS,
 )
 from utils.fees_calculator import calculate_total_fees, get_size_tier
-from clients.supabase_client import get_client, save_deals
+from clients.supabase_client import get_client, save_deals, save_eligible_asin
 
 RESTRICTIONS_PATH = Path(__file__).parent.parent / "restrictions.json"
 APPROVED_BRANDS_PATH = Path(__file__).parent.parent / "approved_brands.json"
@@ -203,6 +203,7 @@ class AcquisitionAgent:
         self.deals_saved = 0
         self.tokens_start = 0
         self.tokens_end = 0
+        self.category_name = None
 
     def run(self) -> list[Deal]:
         api = keepa_lib.Keepa(KEEPA_API_KEY)
@@ -222,6 +223,7 @@ class AcquisitionAgent:
 
         # ── 1 catégorie par run en rotation ───────────────────────────────────
         cat_name, cat_id = _get_next_category()
+        self.category_name = cat_name
         print(f"[Agent 1] Categorie du run : {cat_name}")
 
         all_deals = []
@@ -262,6 +264,10 @@ class AcquisitionAgent:
             statut = check_eligibility(asin)
             print(f"  {asin} ({cat_name}) -> {statut}")
 
+            # Pool persistant : sauvegarde immédiate si ELIGIBLE (avant filtres Keepa)
+            if statut == "ELIGIBLE":
+                save_eligible_asin(asin, cat_name)
+
             if statut in ("RESTRICTED", "HAZMAT"):
                 continue
 
@@ -284,6 +290,11 @@ class AcquisitionAgent:
                 continue
 
             brand = (products[0].get("brand") or "").lower()
+            titre_prod = (products[0].get("title") or "")
+            # Enrichir le pool avec titre + brand maintenant qu'on les a
+            if statut == "ELIGIBLE":
+                save_eligible_asin(asin, cat_name, brand, titre_prod)
+
             if brand and brand in restricted_brands:
                 continue
 

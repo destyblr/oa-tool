@@ -81,6 +81,18 @@ def update_prix_achat(deal_id: str, prix_achat: float):
         print(f"Erreur mise à jour prix achat : {e}")
 
 
+def save_eligible_asin(asin: str, categorie: str, brand: str = "", titre: str = ""):
+    """Sauvegarde ou met à jour un ASIN ELIGIBLE dans le pool persistant (sans filtres Keepa)."""
+    client = get_client()
+    try:
+        client.table("eligible_pool").upsert(
+            {"asin": asin, "categorie": categorie, "brand": brand, "titre": titre},
+            on_conflict="asin"
+        ).execute()
+    except Exception as e:
+        print(f"[eligible_pool] {asin}: {e}")
+
+
 def clear_today_deals():
     """Supprime les deals du jour avant un nouveau run."""
     client = get_client()

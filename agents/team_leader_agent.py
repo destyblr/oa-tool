@@ -134,6 +134,7 @@ class TeamLeaderAgent:
                 self.run_entry["deals_eligible"] = sum(1 for d in deals if d.statut == "ELIGIBLE")
                 self.run_entry["tokens_after"]   = a.tokens_end
                 self.run_entry["tokens_used"]    = tokens - a.tokens_end
+                self.run_entry["strategy"]       = a.category_name
 
                 # Agent 3 : analyse IA des deals éligibles (0 token Keepa)
                 if self.run_entry["deals_eligible"] > 0:
