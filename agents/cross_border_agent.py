@@ -101,7 +101,6 @@ class CrossBorderAgent:
                         current_SALES_lte=BSR_MAX_EU,
                         current_BUY_BOX_SHIPPING_gte=int(BUY_BOX_MIN * 100),
                         current_BUY_BOX_SHIPPING_lte=int(BUY_BOX_MAX * 100),
-                        current_COUNT_FBA_gte=1,
                     )
                     asins = list(api.product_finder(params, domain=domain, wait=False))
                     print(f"[Agent 2] {domain}/{cat_name} : {len(asins)} ASINs")
