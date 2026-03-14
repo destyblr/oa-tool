@@ -114,12 +114,19 @@ class TeamLeaderAgent:
         self.run_entry["agent"] = agent
         print(f"[TeamLeader] Agent à lancer : {agent.upper()}")
 
-        # 4. Si Agent 1 : efface les deals du jour (nouveau cycle)
+        # 4. Si Agent 1 : pré-détermine la catégorie (sauvegardée même si erreur)
+        if agent == "agent1":
+            from agents.acquisition_agent import _get_next_category
+            cat_name, _ = _get_next_category()
+            self.run_entry["strategy"] = cat_name
+            print(f"[TeamLeader] Catégorie : {cat_name}")
+
+        # 5. Si Agent 1 : efface les deals du jour (nouveau cycle)
         if agent == "agent1":
             from clients.supabase_client import clear_today_deals
             clear_today_deals()
 
-        # 5. Notif Telegram démarrage
+        # 6. Notif Telegram démarrage
         send_telegram(
             f"[OA Tool] Démarrage {agent.upper()}\n"
             f"Tokens : {tokens}/60"
@@ -134,7 +141,7 @@ class TeamLeaderAgent:
                 self.run_entry["deals_eligible"] = sum(1 for d in deals if d.statut == "ELIGIBLE")
                 self.run_entry["tokens_after"]   = a.tokens_end
                 self.run_entry["tokens_used"]    = tokens - a.tokens_end
-                self.run_entry["strategy"]       = a.category_name
+                self.run_entry["strategy"]       = a.category_name  # confirme (peut différer si DB count a changé)
 
                 # Agent 3 : analyse IA des deals éligibles (0 token Keepa)
                 if self.run_entry["deals_eligible"] > 0:
