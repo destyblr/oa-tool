@@ -78,9 +78,15 @@ def _product_to_deal(product: dict, category: str, statut: str, api) -> Deal | N
     stats = product.get("stats", {})
     max_counts = stats.get("max", [])
     if len(max_counts) > 10 and max_counts[10] is not None:
-        if max_counts[10] <= 2:
-            print(f"  [PL] {asin} — max {max_counts[10]} vendeurs historiques → skip")
-            return None
+        try:
+            val = max_counts[10]
+            if isinstance(val, list):
+                val = max((v for v in val if isinstance(v, (int, float))), default=None)
+            if val is not None and val <= 2:
+                print(f"  [PL] {asin} — max {val} vendeurs historiques → skip")
+                return None
+        except Exception:
+            pass
 
     if EXCLURE_AMAZON_VENDEUR and amazon_in_stock(product):
         return None
