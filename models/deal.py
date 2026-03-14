@@ -30,6 +30,7 @@ class Deal:
     frais_efn: Optional[float] = None
     envoi_fba: Optional[float] = None
     urssaf: Optional[float] = None
+    stockage_fba: Optional[float] = None
     total_frais: Optional[float] = None
 
     # Rentabilité
@@ -82,6 +83,7 @@ class Deal:
             "frais_efn": self.frais_efn,
             "envoi_fba": self.envoi_fba,
             "urssaf": self.urssaf,
+            "stockage_fba": self.stockage_fba,
             "total_frais": self.total_frais,
             "marketplace_recommandee": self.marketplace_recommandee,
             "roi_fr": self.roi_fr,

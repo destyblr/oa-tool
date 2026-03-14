@@ -184,7 +184,8 @@ class CrossBorderAgent:
                         continue
 
                     buy_price = round(buy_box_fr_avg90 * 0.7, 2)
-                    fees = calculate_total_fees(buy_box_eu, "Kitchen", size_tier, weight_g, domain)
+                    fees = calculate_total_fees(buy_box_eu, "Kitchen", size_tier, weight_g, domain,
+                                                length, width, height)
                     profit_net = round(buy_box_eu - fees["total_frais"] - buy_price, 2)
                     roi = round((profit_net / buy_price) * 100, 1) if buy_price > 0 else 0
 

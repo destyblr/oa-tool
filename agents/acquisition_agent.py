@@ -124,12 +124,14 @@ def _product_to_deal(product: dict, category: str, statut: str, api) -> Deal | N
     height = product.get("packageHeight") or 0
     size_tier = get_size_tier(weight_g, length, width, height)
 
-    fees_fr = calculate_total_fees(buy_box_moy, category, size_tier, weight_g, "FR")
+    fees_fr = calculate_total_fees(buy_box_moy, category, size_tier, weight_g, "FR",
+                                    length, width, height)
     prix_achat_estime = round(buy_box_moy * 0.7, 2)
     profit_fr = round(buy_box_moy - fees_fr["total_frais"] - prix_achat_estime, 2)
     roi_fr = round((profit_fr / prix_achat_estime) * 100, 1) if prix_achat_estime > 0 else 0
 
-    fees_de = calculate_total_fees(buy_box_moy, category, size_tier, weight_g, "DE")
+    fees_de = calculate_total_fees(buy_box_moy, category, size_tier, weight_g, "DE",
+                                    length, width, height)
 
     deal = Deal(
         asin=asin,
@@ -147,6 +149,7 @@ def _product_to_deal(product: dict, category: str, statut: str, api) -> Deal | N
         frais_efn=fees_de.get("total_frais"),
         envoi_fba=fees_fr["envoi_fba"],
         urssaf=fees_fr["urssaf"],
+        stockage_fba=fees_fr["stockage_fba"],
         total_frais=fees_fr["total_frais"],
         roi_fr=roi_fr,
         profit_net_fr=profit_fr,

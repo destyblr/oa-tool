@@ -54,20 +54,35 @@ def get_urssaf(sell_price: float) -> float:
     return round(sell_price * URSSAF_RATE, 2)
 
 
+def get_storage_fee(length_cm: float, width_cm: float, height_cm: float) -> float:
+    """Calcule les frais de stockage FBA mensuels par unité.
+    Grille Amazon 2024 : 26€/m³ (janv-sept), 36€/m³ (oct-déc).
+    On utilise la moyenne annuelle : ~28.50€/m³."""
+    if not length_cm or not width_cm or not height_cm:
+        return 0.0
+    volume_m3 = (length_cm / 100) * (width_cm / 100) * (height_cm / 100)
+    avg_rate = 28.50  # €/m³/mois (moyenne annuelle)
+    return round(volume_m3 * avg_rate, 2)
+
+
 def calculate_total_fees(sell_price: float, category: str, size_tier: str,
-                          weight_g: float, marketplace: str = "FR") -> dict:
+                          weight_g: float, marketplace: str = "FR",
+                          length_cm: float = 0, width_cm: float = 0,
+                          height_cm: float = 0) -> dict:
     """Calcule tous les frais et retourne la décomposition complète."""
     referral = get_referral_fee(sell_price, category)
     fba = get_fba_fees(size_tier, marketplace)
     shipping = get_shipping_cost(weight_g)
     urssaf = get_urssaf(sell_price)
-    total = round(referral + fba + shipping + urssaf, 2)
+    stockage = get_storage_fee(length_cm, width_cm, height_cm)
+    total = round(referral + fba + shipping + urssaf + stockage, 2)
 
     return {
         "referral_fee": referral,
         "frais_fba": fba,
         "envoi_fba": shipping,
         "urssaf": urssaf,
+        "stockage_fba": stockage,
         "total_frais": total,
     }
 
