@@ -34,26 +34,23 @@ from clients.supabase_client import get_client
 # IDs catégories Keepa par domaine EU
 EU_CATEGORY_IDS = {
     "DE": {
-        "Toys & Games":      13193371,
-        "Sports & Outdoors": 16435051,
         "Kitchen":           3167641,
-        "Electronics":       573084,
         "Pet Supplies":      669513011,
         "Office Products":   192416031,
+        "Bricolage":         80084031,    # Baumarkt
+        "Luminaires":        213083031,   # Beleuchtung
     },
     "IT": {
-        "Toys & Games":      524015031,
-        "Sports & Outdoors": 524013031,
         "Kitchen":           524018031,
-        "Electronics":       419122031,
         "Pet Supplies":      525612031,
+        "Bricolage":         2454160031,  # Fai da te
+        "Luminaires":        1571292031,  # Illuminazione
     },
     "ES": {
-        "Toys & Games":      599370031,
-        "Sports & Outdoors": 2454124031,
         "Kitchen":           599392031,
-        "Electronics":       667049031,
         "Pet Supplies":      3166091,
+        "Bricolage":         2454133031,  # Bricolaje y herramientas
+        "Luminaires":        3564289031,  # Iluminación
     },
 }
 

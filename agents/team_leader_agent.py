@@ -2,13 +2,9 @@
 TeamLeaderAgent — Orchestrateur simplifié.
 
 Logique :
-  - Vérifie tokens Keepa (max 60)
-  - < 5 tokens → skip
-  - Regarde le dernier run réussi :
-      → dernier = agent1 → lance Agent 2
-      → sinon → lance Agent 1
-  - Chaque agent utilise tous les tokens jusqu'à 0
-  - clear_today_deals() seulement si Agent 1 tourne (début de cycle)
+  - Vérifie tokens Keepa (min 5 pour lancer)
+  - Alternance Agent 1 / Agent 2 à chaque run
+  - Chaque agent utilise les tokens disponibles
   - Telegram sur démarrage, succès et erreur
   - Sauvegarde run dans run_log.json + Supabase
 """
@@ -22,7 +18,7 @@ from config import KEEPA_API_KEY
 from notifier import send_telegram
 
 LOG_PATH = Path(__file__).parent.parent / "logs" / "run_log.json"
-MIN_TOKENS = 60  # Lance uniquement quand le bucket est plein (60 max)
+MIN_TOKENS = 5  # Minimum pour lancer un run (product_finder coûte ~5 tokens)
 
 
 # ── Log helpers ───────────────────────────────────────────────────────────────

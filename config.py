@@ -14,8 +14,8 @@ SELLERAMP_PASSWORD = os.getenv("SELLERAMP_PASSWORD")
 
 # Catégories scannées
 CATEGORIES_TO_SCAN = [
-    "Toys & Games", "Sports & Outdoors", "Kitchen",
-    "Home & Garden", "Electronics", "Pet Supplies", "Office Products",
+    "Kitchen", "Home & Garden", "Pet Supplies", "Office Products",
+    "Bricolage", "Luminaires",
 ]
 
 # Nombre max d'ASINs récupérés par catégorie (1 token Keepa ≈ 1 ASIN)
@@ -42,10 +42,12 @@ EXCLURE_AMAZON_VENDEUR = True  # True = exclure si Amazon est vendeur (deal kill
 # Rentabilité
 MIN_ROI_PERCENT = 25
 REFERRAL_RATES = {
-    "Toys & Games": 0.15,
-    "Sports & Outdoors": 0.15,
     "Kitchen": 0.15,
-    "Electronics": 0.08,
+    "Home & Garden": 0.15,
+    "Pet Supplies": 0.15,
+    "Office Products": 0.15,
+    "Bricolage": 0.15,
+    "Luminaires": 0.15,
     "default": 0.15,
 }
 URSSAF_RATE = 0.123

@@ -15,13 +15,12 @@ from config import (
 
 # Mapping catégories → IDs Keepa réels (domain FR=4), récupérés via category_lookup
 KEEPA_CATEGORY_IDS = {
-    "Toys & Games":    322086011,   # Jeux et Jouets
-    "Sports & Outdoors": 325614031, # Sports et Loisirs
     "Kitchen":         57004031,    # Cuisine et Maison
     "Home & Garden":   3557027031,  # Jardin
-    "Electronics":     13921051,    # High-Tech
     "Pet Supplies":    1571268031,  # Animalerie
     "Office Products": 192419031,   # Fournitures de bureau
+    "Bricolage":       590748031,   # Bricolage
+    "Luminaires":      213080031,   # Luminaires et Éclairage
 }
 
 # Mapping domain Keepa → marketplace

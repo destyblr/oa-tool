@@ -235,25 +235,20 @@ def tool_get_efn_fee_table() -> dict:
 # Category IDs Keepa par domaine EU (stables, issus de category_lookup)
 _EU_CATEGORY_IDS = {
     "DE": {
-        "Toys & Games":      13193371,
-        "Sports & Outdoors": 16435051,
         "Kitchen":           3167641,
-        "Electronics":       573084,
         "Pet Supplies":      669513011,
         "Office Products":   192416031,
+        "Bricolage":         80084031,    # Baumarkt
+        "Luminaires":        213083031,   # Beleuchtung
     },
     "IT": {
-        "Toys & Games":      524015031,
-        "Sports & Outdoors": 524013031,
         "Kitchen":           524018031,
-        "Electronics":       419122031,
         "Pet Supplies":      525612031,
+        "Bricolage":         2454160031,  # Fai da te
+        "Luminaires":        1571292031,  # Illuminazione
     },
     "ES": {
-        "Toys & Games":      599370031,
-        "Sports & Outdoors": 2454124031,
         "Kitchen":           599392031,
-        "Electronics":       667049031,
         "Pet Supplies":      3166091,
     },
 }
@@ -284,7 +279,6 @@ def tool_search_keepa_eu(
             "current_BUY_BOX_SHIPPING_lte": buy_box_max_cents,
             "current_SALES_gte": bsr_min,
             "current_SALES_lte": bsr_max,
-            "current_COUNT_FBA_gte": 1,
         }
         if category_id:
             params["rootCategory"] = str(category_id)
