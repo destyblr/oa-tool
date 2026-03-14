@@ -18,7 +18,7 @@ from config import KEEPA_API_KEY
 from notifier import send_telegram
 
 LOG_PATH = Path(__file__).parent.parent / "logs" / "run_log.json"
-MIN_TOKENS = 5  # Minimum pour lancer un run (product_finder coûte ~5 tokens)
+MIN_TOKENS = 60  # Lance uniquement quand le bucket est plein (60 max)
 
 
 # ── Log helpers ───────────────────────────────────────────────────────────────
