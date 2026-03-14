@@ -121,12 +121,7 @@ class TeamLeaderAgent:
             self.run_entry["strategy"] = cat_name
             print(f"[TeamLeader] Catégorie : {cat_name}")
 
-        # 5. Si Agent 1 : efface les deals du jour (nouveau cycle)
-        if agent == "agent1":
-            from clients.supabase_client import clear_today_deals
-            clear_today_deals()
-
-        # 6. Notif Telegram démarrage
+        # 5. Notif Telegram démarrage
         send_telegram(
             f"[OA Tool] Démarrage {agent.upper()}\n"
             f"Tokens : {tokens}/60"

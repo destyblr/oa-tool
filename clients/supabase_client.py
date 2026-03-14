@@ -104,6 +104,7 @@ def clear_today_deals():
         print(f"Erreur suppression deals : {e}")
 
 
+
 def save_run(entry: dict):
     """Sauvegarde un résumé de run dans la table Supabase 'runs'."""
     client = get_client()
