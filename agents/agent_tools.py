@@ -12,7 +12,7 @@ from clients.keepa_client import (
     get_api, get_buy_box_stats, KEEPA_CATEGORY_IDS, KEEPA_DOMAINS,
     amazon_in_stock, count_fba_sellers, get_bsr, generate_shopping_link,
 )
-from clients.supabase_client import get_client
+from clients.supabase_client import get_client, get_category_page, set_category_page
 from utils.fees_calculator import calculate_total_fees, calculate_roi, get_size_tier
 from config import EFN_FEES
 
@@ -87,6 +87,8 @@ def tool_search_keepa_category(
         return {"error": f"Catégorie inconnue: {category_name}", "asins": [], "count": 0}
 
     api = get_api()
+    page_key = f"FR/{category_name}"
+    page_index = get_category_page(page_key)
     try:
         params = keepa_lib.ProductParams(
             rootCategory=str(category_id),
@@ -94,8 +96,22 @@ def tool_search_keepa_category(
             current_SALES_lte=bsr_max,
             current_BUY_BOX_SHIPPING_gte=buy_box_min_cents,
             current_BUY_BOX_SHIPPING_lte=buy_box_max_cents,
+            page=page_index,
         )
         asins = api.product_finder(params, domain="FR")
+
+        if not asins and page_index > 0:
+            print(f"[agent_tools] Page {page_index} vide → retour page 0")
+            page_index = 0
+            params = keepa_lib.ProductParams(
+                rootCategory=str(category_id),
+                current_SALES_gte=bsr_min,
+                current_SALES_lte=bsr_max,
+                current_BUY_BOX_SHIPPING_gte=buy_box_min_cents,
+                current_BUY_BOX_SHIPPING_lte=buy_box_max_cents,
+                page=0,
+            )
+            asins = api.product_finder(params, domain="FR")
 
         if not asins:
             print(f"[agent_tools] Fallback sans rootCategory pour {category_name}...")
@@ -107,6 +123,7 @@ def tool_search_keepa_category(
             )
             asins = api.product_finder(params_fb, domain="FR")
 
+        set_category_page(page_key, page_index + 1)
         asins = list(asins[:max_asins])
         tokens_left = getattr(api, 'tokens_left', None)
         return {"asins": asins, "count": len(asins), "tokens_used": len(asins), "tokens_left": tokens_left}
@@ -236,20 +253,20 @@ def tool_get_efn_fee_table() -> dict:
 _EU_CATEGORY_IDS = {
     "DE": {
         "Kitchen":           3167641,
-        "Pet Supplies":      669513011,
+        "Auto & Moto":       2528832031,  # Auto & Motorrad
         "Office Products":   192416031,
         "Bricolage":         80084031,    # Baumarkt
         "Luminaires":        213083031,   # Beleuchtung
     },
     "IT": {
         "Kitchen":           524018031,
-        "Pet Supplies":      525612031,
+        "Auto & Moto":       2454170031,  # Auto e Moto
         "Bricolage":         2454160031,  # Fai da te
         "Luminaires":        1571292031,  # Illuminazione
     },
     "ES": {
         "Kitchen":           599392031,
-        "Pet Supplies":      3166091,
+        "Auto & Moto":       1951051031,  # Coche y moto
     },
 }
 
@@ -272,6 +289,8 @@ def tool_search_keepa_eu(
 
     api = get_api()
     category_id = _EU_CATEGORY_IDS.get(domain, {}).get(category_name) if category_name else None
+    page_key = f"{domain}/{category_name}" if category_name else f"{domain}/_all"
+    page_index = get_category_page(page_key)
 
     try:
         params = {
@@ -279,11 +298,20 @@ def tool_search_keepa_eu(
             "current_BUY_BOX_SHIPPING_lte": buy_box_max_cents,
             "current_SALES_gte": bsr_min,
             "current_SALES_lte": bsr_max,
+            "page": page_index,
         }
         if category_id:
             params["rootCategory"] = str(category_id)
 
         asins = list(api.product_finder(params, domain=domain))[:max_asins]
+
+        if not asins and page_index > 0:
+            print(f"[agent_tools] EU page {page_index} vide → retour page 0")
+            page_index = 0
+            params["page"] = 0
+            asins = list(api.product_finder(params, domain=domain))[:max_asins]
+
+        set_category_page(page_key, page_index + 1)
         tokens_left = getattr(api, "tokens_left", None)
         return {
             "domain": domain,

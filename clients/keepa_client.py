@@ -17,7 +17,7 @@ from config import (
 KEEPA_CATEGORY_IDS = {
     "Kitchen":         57004031,    # Cuisine et Maison
     "Home & Garden":   3557027031,  # Jardin
-    "Pet Supplies":    1571268031,  # Animalerie
+    "Auto & Moto":     1571265031,  # Auto et Moto
     "Office Products": 192419031,   # Fournitures de bureau
     "Bricolage":       590748031,   # Bricolage
     "Luminaires":      213080031,   # Luminaires et Éclairage

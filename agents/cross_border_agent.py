@@ -29,13 +29,13 @@ from clients.keepa_client import (
     KEEPA_DOMAINS,
 )
 from utils.fees_calculator import calculate_total_fees, get_size_tier
-from clients.supabase_client import get_client
+from clients.supabase_client import get_client, get_category_page, set_category_page
 
 # IDs catégories Keepa par domaine EU
 EU_CATEGORY_IDS = {
     "DE": {
         "Kitchen":           3167641,
-        "Pet Supplies":      669513011,
+        "Auto & Moto":       2528832031,  # Auto & Motorrad
         "Office Products":   192416031,
         "Bricolage":         80084031,    # Baumarkt
         "Luminaires":        213083031,   # Beleuchtung
@@ -79,6 +79,8 @@ class CrossBorderAgent:
                     done = True
                     break
 
+                page_key = f"{domain}/{cat_name}"
+                page_index = get_category_page(page_key)
                 try:
                     params = keepa_lib.ProductParams(
                         rootCategory=str(cat_id),
@@ -86,10 +88,28 @@ class CrossBorderAgent:
                         current_SALES_lte=BSR_MAX_EU,
                         current_BUY_BOX_SHIPPING_gte=int(BUY_BOX_MIN * 100),
                         current_BUY_BOX_SHIPPING_lte=int(BUY_BOX_MAX * 100),
+                        page=page_index,
                     )
                     asins = list(api.product_finder(params, domain=domain, wait=False))
-                    print(f"[Agent 2] {domain}/{cat_name} : {len(asins)} ASINs")
+                    print(f"[Agent 2] {domain}/{cat_name} page {page_index} : {len(asins)} ASINs")
                     time.sleep(0.2)
+
+                    if not asins and page_index > 0:
+                        print(f"[Agent 2] Page {page_index} vide → retour page 0")
+                        page_index = 0
+                        params = keepa_lib.ProductParams(
+                            rootCategory=str(cat_id),
+                            current_SALES_gte=BSR_MIN,
+                            current_SALES_lte=BSR_MAX_EU,
+                            current_BUY_BOX_SHIPPING_gte=int(BUY_BOX_MIN * 100),
+                            current_BUY_BOX_SHIPPING_lte=int(BUY_BOX_MAX * 100),
+                            page=0,
+                        )
+                        asins = list(api.product_finder(params, domain=domain, wait=False))
+                        print(f"[Agent 2] {domain}/{cat_name} page 0 : {len(asins)} ASINs")
+                        time.sleep(0.2)
+
+                    set_category_page(page_key, page_index + 1)
                 except Exception as e:
                     print(f"[Agent 2] product_finder {domain}/{cat_name} : {e}")
                     break
