@@ -23,7 +23,7 @@ MAX_ASINS_PER_RUN = 50
 
 # --- BSR (classement des ventes) ---
 BSR_MIN = 1_000        # Minimum : évite produits ultra-compétitifs (trop de concurrence)
-BSR_MAX = 50_000       # Maximum : produits qui se vendent suffisamment
+BSR_MAX = 150_000      # Maximum : produits qui se vendent suffisamment
 
 # --- Buy Box prix (€) ---
 BUY_BOX_MIN = 15.0     # Min : évite les produits trop bas de gamme (marges trop faibles)
@@ -92,3 +92,10 @@ SELLERAMP_DELAY_MAX = 3.0
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 AGENT_TOKEN_BUDGET = int(os.getenv("AGENT_TOKEN_BUDGET", "200"))
 AGENT_MAX_ITERATIONS = 10
+
+# Amazon SP API
+SP_CLIENT_ID = os.getenv("SP_CLIENT_ID")
+SP_CLIENT_SECRET = os.getenv("SP_CLIENT_SECRET")
+SP_REFRESH_TOKEN = os.getenv("SP_REFRESH_TOKEN")
+SP_SELLER_ID = os.getenv("SP_SELLER_ID")
+SP_MARKETPLACE_ID = os.getenv("SP_MARKETPLACE_ID", "A13V1IB3VIYZZH")

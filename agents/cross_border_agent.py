@@ -1,245 +1,231 @@
 """
-CrossBorderAgent (v2) — Sourcing EU natif.
+Agent 2 — Cross-border EU natif (pur Python, sans Claude AI).
 
-Nouveau rôle : cherche directement sur DE/IT/ES des ASINs avec un prix EU > prix FR + 15%.
-N'analyse plus les deals Agent 1 — c'est un agent indépendant qui alimente l'onglet Cross Border.
+Flow entrelacé (domaine/catégorie par catégorie) :
+  Pour chaque domaine EU (DE, IT, ES) et chaque catégorie :
+    1. product_finder (tokens_left >= 5 requis)
+    2. Pour chaque ASIN retourné immédiatement :
+       a. check_eligibility SP API FR (0 token) → RESTRICTED/HAZMAT → skip
+       b. Fetch prix EU (1 token, wait=False)
+       c. Fetch prix FR (1 token, wait=False)
+       d. prix EU > prix FR + 15% ? → sinon skip
+       e. Calcule frais EFN + ROI
+       f. profit_net >= 5€ ? → sauvegarde Supabase
+       g. tokens < 3 → stop tout
 """
-import json
-import anthropic
+import time
+import requests as _req
+from datetime import datetime, timezone
 
-from config import ANTHROPIC_API_KEY, AGENT_MAX_ITERATIONS
-from agents.agent_tools import (
-    tool_search_keepa_eu,
-    tool_get_asin_details_eu,
-    tool_get_fr_prices_for_asins,
-    tool_calculate_efn_profitability,
-    tool_get_efn_fee_table,
-    tool_save_cross_border_opportunity,
+import keepa as keepa_lib
+from clients.sp_api_client import check_eligibility
+
+from config import (
+    KEEPA_API_KEY,
+    BSR_MIN, BUY_BOX_MIN, BUY_BOX_MAX, ARBITRAGE_SPREAD_MIN,
 )
+from clients.keepa_client import (
+    get_buy_box_stats, amazon_in_stock, count_fba_sellers, get_bsr,
+    KEEPA_DOMAINS,
+)
+from utils.fees_calculator import calculate_total_fees, get_size_tier
+from clients.supabase_client import get_client
 
-SYSTEM_PROMPT = """Tu es un agent de sourcing cross-border pour Online Arbitrage Amazon FBA.
-
-## Concept
-Trouver des produits qui se vendent PLUS CHER sur DE/IT/ES que sur FR.
-Acheter en FR (via Amazon.fr ou retailer FR), revendre sur EU via EFN = profit.
-
-## Critères d'une opportunité valide
-- prix_eu > prix_fr_avg90 × 1.15 (écart minimum 15%)
-- profit_net EFN >= 5€
-- BSR EU < 80 000
-- Amazon N'est PAS vendeur sur la marketplace EU cible
-- nb_vendeurs_fba >= 1 sur EU
-
-## Workflow strict
-
-### Étape 1 — Frais EFN (une seule fois)
-Appelle get_efn_fee_table.
-
-### Étape 2 — Recherche sur chaque domaine EU
-Pour chaque domaine dans l'ordre DE, IT, ES :
-  a. Appelle search_keepa_eu : domain=<domaine>, bsr_min=1000, bsr_max=80000,
-     buy_box_min_cents=1500, buy_box_max_cents=20000, max_asins=15
-  b. Si tokens_left < 50 → STOP immédiat, aller à l'étape finale
-  c. Appelle get_asin_details_eu pour les ASINs trouvés (batches de 10 max)
-  d. Garde uniquement : amazon_en_stock=False ET nb_vendeurs_fba >= 1 ET buy_box_current > 0
-
-### Étape 3 — Prix FR
-Pour chaque lot d'ASINs filtrés (max 10 par appel) :
-  a. Appelle get_fr_prices_for_asins
-  b. Skip si amazon_en_stock_fr = True
-  c. Skip si buy_box_fr_avg90 est null ou 0
-  d. Calcule écart : (buy_box_current - buy_box_fr_avg90) / buy_box_fr_avg90 × 100
-  e. Garde uniquement si écart >= 15%
-
-### Étape 4 — Rentabilité EFN
-Pour chaque ASIN avec écart >= 15% :
-  a. Appelle calculate_efn_profitability :
-     - sell_price = buy_box_current (prix EU)
-     - buy_price = buy_box_fr_avg90 × 0.70 (estimation achat FR)
-     - category = "Kitchen" (défaut si inconnu)
-     - size_tier et weight_g depuis get_asin_details_eu
-     - marketplace = domaine EU cible
-  b. Skip si profit_net < 5€
-
-### Étape 5 — Sauvegarde
-Pour chaque opportunité validée (écart >=15% ET profit_net >=5€) :
-  Appelle save_cross_border_opportunity avec toutes les données.
-
-### Étape finale
-Réponds : "CROSS-BORDER EU TERMINÉ — X opportunités sauvegardées sur DE/IT/ES"
-
-## Règles importantes
-- Traiter DE en premier (plus grand marché EU)
-- Grouper les appels en batches de 10 ASINs max
-- Ne jamais appeler search_keepa_eu si tokens_left < 50
-- alerte_arbitrage format : "DE +22%" ou "IT +18%"
-"""
-
-TOOLS_SCHEMA = [
-    {
-        "name": "get_efn_fee_table",
-        "description": "Retourne la table des frais EFN. Appeler une seule fois au départ.",
-        "input_schema": {"type": "object", "properties": {}, "required": []},
+# IDs catégories Keepa par domaine EU
+EU_CATEGORY_IDS = {
+    "DE": {
+        "Toys & Games":      13193371,
+        "Sports & Outdoors": 16435051,
+        "Kitchen":           3167641,
+        "Electronics":       573084,
+        "Pet Supplies":      669513011,
+        "Office Products":   192416031,
     },
-    {
-        "name": "search_keepa_eu",
-        "description": "Cherche des ASINs sur un domaine EU (DE/IT/ES) via Keepa. Coût ~2-5 tokens.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "domain": {"type": "string", "enum": ["DE", "IT", "ES"]},
-                "bsr_min": {"type": "integer"},
-                "bsr_max": {"type": "integer"},
-                "buy_box_min_cents": {"type": "integer"},
-                "buy_box_max_cents": {"type": "integer"},
-                "max_asins": {"type": "integer"},
-                "category_name": {"type": "string", "description": "Optionnel"},
-            },
-            "required": ["domain", "bsr_min", "bsr_max", "buy_box_min_cents", "buy_box_max_cents", "max_asins"],
-        },
+    "IT": {
+        "Toys & Games":      524015031,
+        "Sports & Outdoors": 524013031,
+        "Kitchen":           524018031,
+        "Electronics":       419122031,
+        "Pet Supplies":      525612031,
     },
-    {
-        "name": "get_asin_details_eu",
-        "description": "Récupère prix buy box, BSR, vendeurs FBA, poids pour des ASINs sur EU. Coût 1 token/ASIN.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "asins": {"type": "array", "items": {"type": "string"}},
-                "domain": {"type": "string", "enum": ["DE", "IT", "ES"]},
-            },
-            "required": ["asins", "domain"],
-        },
+    "ES": {
+        "Toys & Games":      599370031,
+        "Sports & Outdoors": 2454124031,
+        "Kitchen":           599392031,
+        "Electronics":       667049031,
+        "Pet Supplies":      3166091,
     },
-    {
-        "name": "get_fr_prices_for_asins",
-        "description": "Récupère les prix buy box FR pour comparer avec les prix EU. Coût 1 token/ASIN.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "asins": {"type": "array", "items": {"type": "string"}},
-            },
-            "required": ["asins"],
-        },
-    },
-    {
-        "name": "calculate_efn_profitability",
-        "description": "Calcule profit net et ROI EFN pour vendre depuis FR vers EU.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "sell_price": {"type": "number"},
-                "buy_price": {"type": "number"},
-                "category": {"type": "string"},
-                "size_tier": {"type": "string"},
-                "weight_g": {"type": "number"},
-                "marketplace": {"type": "string", "enum": ["DE", "IT", "ES"]},
-            },
-            "required": ["sell_price", "buy_price", "category", "size_tier", "weight_g", "marketplace"],
-        },
-    },
-    {
-        "name": "save_cross_border_opportunity",
-        "description": "Sauvegarde une opportunité cross-border validée dans Supabase.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "asin": {"type": "string"},
-                "titre": {"type": "string"},
-                "domain_source": {"type": "string", "enum": ["DE", "IT", "ES"]},
-                "buy_box_eu": {"type": "number"},
-                "buy_box_fr": {"type": "number"},
-                "size_tier": {"type": "string"},
-                "weight_g": {"type": "number"},
-                "categorie": {"type": "string"},
-                "profit_net": {"type": "number"},
-                "roi": {"type": "number"},
-                "bsr_eu": {"type": ["integer", "null"]},
-                "alerte_arbitrage": {"type": "string"},
-                "ecart_arbitrage": {"type": "number"},
-            },
-            "required": ["asin", "titre", "domain_source", "buy_box_eu", "buy_box_fr",
-                         "size_tier", "weight_g", "categorie", "profit_net", "roi"],
-        },
-    },
-]
+}
+
+MIN_PROFIT_NET = 5.0   # €
+BSR_MAX_EU     = 80_000
 
 
 class CrossBorderAgent:
     def __init__(self):
-        self.client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-        self.last_tokens_left: int | None = None
-        self.opportunities_saved: int = 0
+        self.opportunities_saved = 0
+        self.tokens_start = 0
+        self.tokens_end = 0
 
-    def _dispatch_tool(self, name: str, input_data: dict):
-        if name == "get_efn_fee_table":
-            return tool_get_efn_fee_table()
-        elif name == "search_keepa_eu":
-            return tool_search_keepa_eu(**input_data)
-        elif name == "get_asin_details_eu":
-            return tool_get_asin_details_eu(input_data["asins"], input_data["domain"])
-        elif name == "get_fr_prices_for_asins":
-            return tool_get_fr_prices_for_asins(input_data["asins"])
-        elif name == "calculate_efn_profitability":
-            return tool_calculate_efn_profitability(**input_data)
-        elif name == "save_cross_border_opportunity":
-            result = tool_save_cross_border_opportunity(**input_data)
-            if result.get("status") == "ok":
-                self.opportunities_saved += 1
-            return result
-        return {"error": f"Outil inconnu: {name}"}
+    def run(self) -> int:
+        api = keepa_lib.Keepa(KEEPA_API_KEY)
+        # keepa initialise tokens_left=0, on query directement et on override
+        try:
+            r = _req.get("https://api.keepa.com/token", params={"key": KEEPA_API_KEY}, timeout=10)
+            self.tokens_start = int(r.json().get("tokensLeft", 0))
+        except Exception:
+            self.tokens_start = 0
+        api.tokens_left = self.tokens_start
+        print(f"[Agent 2] Tokens disponibles : {self.tokens_start}")
 
-    def _update_tokens(self, result):
-        if isinstance(result, dict):
-            tl = result.get("_tokens_left") or result.get("tokens_left")
-            if tl is not None:
-                self.last_tokens_left = tl
-        elif isinstance(result, list):
-            meta = next((x for x in result if isinstance(x, dict) and "_tokens_left" in x), None)
-            if meta:
-                self.last_tokens_left = meta["_tokens_left"]
+        done = False
 
-    def run(self, token_budget: int = 150) -> int:
-        """Lance le sourcing cross-border EU. Retourne le nombre d'opportunités sauvegardées."""
-        messages = [{
-            "role": "user",
-            "content": (
-                f"Lance la recherche cross-border EU.\n"
-                f"Budget tokens Keepa disponible : {token_budget}\n"
-                f"Traite les domaines dans l'ordre : DE, IT, ES.\n"
-                f"Suis exactement le workflow décrit dans tes instructions."
-            ),
-        }]
-
-        iterations = 0
-        while iterations < AGENT_MAX_ITERATIONS:
-            response = self.client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=4096,
-                system=SYSTEM_PROMPT,
-                tools=TOOLS_SCHEMA,
-                messages=messages,
-            )
-            iterations += 1
-
-            if response.stop_reason == "end_turn":
+        for domain in ["DE", "IT", "ES"]:
+            if done:
                 break
 
-            if response.stop_reason == "tool_use":
-                tool_results = []
-                for block in response.content:
-                    if block.type == "tool_use":
-                        result = self._dispatch_tool(block.name, block.input)
-                        self._update_tokens(result)
-                        tool_results.append({
-                            "type": "tool_result",
-                            "tool_use_id": block.id,
-                            "content": json.dumps(result, ensure_ascii=False, default=str),
-                        })
-                messages.append({"role": "assistant", "content": response.content})
-                messages.append({"role": "user", "content": tool_results})
-            else:
-                break
+            for cat_name, cat_id in EU_CATEGORY_IDS.get(domain, {}).items():
+                if done:
+                    break
 
-        tokens_info = f" | Keepa tokens restants: {self.last_tokens_left}" if self.last_tokens_left is not None else ""
-        print(f"[Agent 2 EU] {self.opportunities_saved} opportunités sauvegardées ({iterations} itérations).{tokens_info}")
+                tokens_left = getattr(api, "tokens_left", 0)
+                if tokens_left < 5:
+                    print(f"[Agent 2] Tokens insuffisants pour product_finder {domain}, stop.")
+                    done = True
+                    break
+
+                try:
+                    params = keepa_lib.ProductParams(
+                        rootCategory=str(cat_id),
+                        current_SALES_gte=BSR_MIN,
+                        current_SALES_lte=BSR_MAX_EU,
+                        current_BUY_BOX_SHIPPING_gte=int(BUY_BOX_MIN * 100),
+                        current_BUY_BOX_SHIPPING_lte=int(BUY_BOX_MAX * 100),
+                        current_COUNT_FBA_gte=1,
+                    )
+                    asins = list(api.product_finder(params, domain=domain, wait=False))
+                    print(f"[Agent 2] {domain}/{cat_name} : {len(asins)} ASINs")
+                    time.sleep(0.2)
+                except Exception as e:
+                    print(f"[Agent 2] product_finder {domain}/{cat_name} : {e}")
+                    break
+
+                for asin in asins:
+                    tokens_left = getattr(api, "tokens_left", 0)
+                    if tokens_left < 3:
+                        print("[Agent 2] Tokens épuisés — stop propre.")
+                        done = True
+                        break
+
+                    # Check eligibility FR (0 token) — on source sur FR via EFN
+                    statut = check_eligibility(asin)
+                    if statut in ("RESTRICTED", "HAZMAT"):
+                        continue
+
+                    # Fetch prix EU (1 token)
+                    try:
+                        products_eu = api.query(
+                            [asin], domain=domain, history=False, stats=90, wait=False
+                        )
+                    except Exception as e:
+                        print(f"  [Keepa] Erreur fetch EU {asin}: {e}")
+                        done = True
+                        break
+
+                    if not products_eu:
+                        continue
+
+                    bb_eu = get_buy_box_stats(products_eu[0], domain)
+                    buy_box_eu = bb_eu["current"]
+                    if not buy_box_eu or buy_box_eu <= 0:
+                        continue
+
+                    bsr_eu = get_bsr(products_eu[0])
+                    if not bsr_eu or bsr_eu > BSR_MAX_EU:
+                        continue
+
+                    if amazon_in_stock(products_eu[0]):
+                        continue
+
+                    weight_g = products_eu[0].get("packageWeight") or products_eu[0].get("itemWeight") or 500
+                    length = products_eu[0].get("packageLength") or 0
+                    width  = products_eu[0].get("packageWidth") or 0
+                    height = products_eu[0].get("packageHeight") or 0
+                    size_tier = get_size_tier(weight_g, length, width, height)
+                    titre = (products_eu[0].get("title") or "")[:100]
+
+                    # Fetch prix FR (1 token)
+                    tokens_left = getattr(api, "tokens_left", 0)
+                    if tokens_left < 1:
+                        print("[Agent 2] Tokens épuisés — stop propre.")
+                        done = True
+                        break
+
+                    try:
+                        products_fr = api.query(
+                            [asin], domain="FR", history=False, stats=90, wait=False
+                        )
+                    except Exception as e:
+                        print(f"  [Keepa] Erreur fetch FR {asin}: {e}")
+                        done = True
+                        break
+
+                    if not products_fr:
+                        continue
+
+                    bb_fr = get_buy_box_stats(products_fr[0], "FR")
+                    buy_box_fr_avg90 = bb_fr["avg90"]
+                    buy_box_fr = bb_fr["current"]
+
+                    if not buy_box_fr_avg90 or buy_box_fr_avg90 <= 0:
+                        continue
+
+                    if amazon_in_stock(products_fr[0]):
+                        continue
+
+                    ecart_pct = ((buy_box_eu - buy_box_fr_avg90) / buy_box_fr_avg90) * 100
+                    if ecart_pct < ARBITRAGE_SPREAD_MIN:
+                        continue
+
+                    buy_price = round(buy_box_fr_avg90 * 0.7, 2)
+                    fees = calculate_total_fees(buy_box_eu, "Kitchen", size_tier, weight_g, domain)
+                    profit_net = round(buy_box_eu - fees["total_frais"] - buy_price, 2)
+                    roi = round((profit_net / buy_price) * 100, 1) if buy_price > 0 else 0
+
+                    if profit_net < MIN_PROFIT_NET:
+                        continue
+
+                    alerte = f"{domain} +{ecart_pct:.0f}%"
+                    ecart_eur = round(buy_box_eu - buy_box_fr_avg90, 2)
+
+                    domain_field = {"DE": "buy_box_de", "IT": "buy_box_it", "ES": "buy_box_es"}.get(domain)
+                    row = {
+                        "asin":                    asin,
+                        "titre":                   titre,
+                        "categorie":               "Cross-Border",
+                        "statut":                  "CROSS_BORDER",
+                        "source":                  "cross_border",
+                        "buy_box_fr":              buy_box_fr,
+                        "marketplace_recommandee": domain,
+                        "alerte_arbitrage":        alerte,
+                        "ecart_arbitrage":         ecart_eur,
+                        "roi_meilleur":            roi,
+                        "profit_net_fr":           profit_net,
+                        "size_tier":               size_tier,
+                        "weight_g":                weight_g,
+                        "date_scan":               datetime.now(timezone.utc).isoformat(),
+                    }
+                    if domain_field:
+                        row[domain_field] = buy_box_eu
+
+                    try:
+                        get_client().table("deals").insert(row).execute()
+                        self.opportunities_saved += 1
+                        print(f"  {asin} ({domain}) → {alerte} | profit {profit_net}€ | ROI {roi}%")
+                    except Exception as e:
+                        print(f"  [Supabase] Erreur save {asin}: {e}")
+
+        self.tokens_end = getattr(api, "tokens_left", 0)
+        tokens_used = self.tokens_start - self.tokens_end
+        print(f"\n[Agent 2] Terminé — {self.opportunities_saved} opportunités | {tokens_used} tokens utilisés | {self.tokens_end} restants")
         return self.opportunities_saved
