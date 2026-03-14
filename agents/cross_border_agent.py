@@ -40,18 +40,6 @@ EU_CATEGORY_IDS = {
         "Bricolage":         80084031,    # Baumarkt
         "Luminaires":        213083031,   # Beleuchtung
     },
-    "IT": {
-        "Kitchen":           524018031,
-        "Pet Supplies":      525612031,
-        "Bricolage":         2454160031,  # Fai da te
-        "Luminaires":        1571292031,  # Illuminazione
-    },
-    "ES": {
-        "Kitchen":           599392031,
-        "Pet Supplies":      3166091,
-        "Bricolage":         2454133031,  # Bricolaje y herramientas
-        "Luminaires":        3564289031,  # Iluminación
-    },
 }
 
 MIN_PROFIT_NET = 5.0   # €
