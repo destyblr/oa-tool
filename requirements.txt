@@ -2,3 +2,4 @@ supabase
 keepa
 python-dotenv
 requests
+anthropic

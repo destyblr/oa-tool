@@ -54,6 +54,10 @@ class Deal:
     weight_g: Optional[float] = None
     size_tier: Optional[str] = None
 
+    # Analyse IA (Agent 3)
+    verdict: Optional[str] = None      # BUY / RISKY / SKIP
+    analyse_ia: Optional[str] = None
+
     # Meta
     date_scan: datetime = field(default_factory=datetime.now)
 
@@ -91,4 +95,6 @@ class Deal:
             "prix_achat": self.prix_achat,
             "weight_g": self.weight_g,
             "size_tier": self.size_tier,
+            "verdict": self.verdict,
+            "analyse_ia": self.analyse_ia,
         }
