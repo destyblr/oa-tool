@@ -115,6 +115,30 @@ def save_eligible_asin(asin: str, categorie: str, brand: str = "", titre: str = 
         print(f"[eligible_pool] {asin}: {e}")
 
 
+def get_category_page(category: str) -> int:
+    """Retourne la page courante pour une catégorie (pagination product_finder)."""
+    client = get_client()
+    try:
+        resp = client.table("category_pages").select("page_index").eq("category", category).execute()
+        if resp.data:
+            return resp.data[0]["page_index"]
+    except Exception:
+        pass
+    return 0
+
+
+def set_category_page(category: str, page_index: int):
+    """Met à jour la page courante pour une catégorie."""
+    client = get_client()
+    try:
+        client.table("category_pages").upsert(
+            {"category": category, "page_index": page_index},
+            on_conflict="category"
+        ).execute()
+    except Exception as e:
+        print(f"[category_pages] {category}: {e}")
+
+
 def clear_today_deals():
     """Supprime les deals du jour avant un nouveau run."""
     client = get_client()

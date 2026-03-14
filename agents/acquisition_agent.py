@@ -34,7 +34,7 @@ from clients.keepa_client import (
     KEEPA_CATEGORY_IDS, KEEPA_DOMAINS,
 )
 from utils.fees_calculator import calculate_total_fees, get_size_tier
-from clients.supabase_client import get_client, save_deals, save_eligible_asin, save_skipped_asin, get_skipped_asins
+from clients.supabase_client import get_client, save_deals, save_eligible_asin, save_skipped_asin, get_skipped_asins, get_category_page, set_category_page
 
 RESTRICTIONS_PATH = Path(__file__).parent.parent / "restrictions.json"
 APPROVED_BRANDS_PATH = Path(__file__).parent.parent / "approved_brands.json"
@@ -239,6 +239,7 @@ class AcquisitionAgent:
             self.tokens_end = tokens_left
             return all_deals
 
+        page_index = get_category_page(cat_name)
         try:
             params = keepa_lib.ProductParams(
                 rootCategory=str(cat_id),
@@ -246,10 +247,28 @@ class AcquisitionAgent:
                 current_SALES_lte=BSR_MAX,
                 current_BUY_BOX_SHIPPING_gte=int(BUY_BOX_MIN * 100),
                 current_BUY_BOX_SHIPPING_lte=int(BUY_BOX_MAX * 100),
+                page=page_index,
             )
             asins = list(api.product_finder(params, domain="FR", wait=False))
-            print(f"[Agent 1] {cat_name} : {len(asins)} ASINs trouves")
+            print(f"[Agent 1] {cat_name} page {page_index} : {len(asins)} ASINs trouves")
             time.sleep(0.2)
+
+            if not asins and page_index > 0:
+                print(f"[Agent 1] Page {page_index} vide → retour page 0")
+                page_index = 0
+                params = keepa_lib.ProductParams(
+                    rootCategory=str(cat_id),
+                    current_SALES_gte=BSR_MIN,
+                    current_SALES_lte=BSR_MAX,
+                    current_BUY_BOX_SHIPPING_gte=int(BUY_BOX_MIN * 100),
+                    current_BUY_BOX_SHIPPING_lte=int(BUY_BOX_MAX * 100),
+                    page=0,
+                )
+                asins = list(api.product_finder(params, domain="FR", wait=False))
+                print(f"[Agent 1] {cat_name} page 0 : {len(asins)} ASINs trouves")
+                time.sleep(0.2)
+
+            set_category_page(cat_name, page_index + 1)
         except Exception as e:
             print(f"[Agent 1] product_finder {cat_name} : {e}")
             self.tokens_end = getattr(api, "tokens_left", 0)
