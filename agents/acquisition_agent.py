@@ -34,7 +34,7 @@ from clients.keepa_client import (
     KEEPA_CATEGORY_IDS, KEEPA_DOMAINS,
 )
 from utils.fees_calculator import calculate_total_fees, get_size_tier
-from clients.supabase_client import get_client, save_deals, save_eligible_asin
+from clients.supabase_client import get_client, save_deals, save_eligible_asin, save_skipped_asin, get_skipped_asins
 
 RESTRICTIONS_PATH = Path(__file__).parent.parent / "restrictions.json"
 APPROVED_BRANDS_PATH = Path(__file__).parent.parent / "approved_brands.json"
@@ -223,6 +223,7 @@ class AcquisitionAgent:
         restricted_asins = set(restrictions.get("restricted_asins", []))
         restricted_brands = {b.lower() for b in restrictions.get("restricted_brands", [])}
         already_scanned = _get_past_scanned_asins()
+        skipped_asins = get_skipped_asins()
 
         # ── 1 catégorie par run en rotation ───────────────────────────────────
         cat_name, cat_id = _get_next_category()
@@ -255,7 +256,7 @@ class AcquisitionAgent:
             return all_deals
 
         for asin in asins:
-            if asin in already_scanned or asin in restricted_asins:
+            if asin in already_scanned or asin in restricted_asins or asin in skipped_asins:
                 continue
 
             tokens_left = getattr(api, "tokens_left", 0)
@@ -272,6 +273,7 @@ class AcquisitionAgent:
                 save_eligible_asin(asin, cat_name)
 
             if statut in ("RESTRICTED", "HAZMAT"):
+                save_skipped_asin(asin, cat_name, statut)
                 continue
 
             tokens_left = getattr(api, "tokens_left", 0)

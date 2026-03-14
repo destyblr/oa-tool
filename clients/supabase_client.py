@@ -81,6 +81,28 @@ def update_prix_achat(deal_id: str, prix_achat: float):
         print(f"Erreur mise à jour prix achat : {e}")
 
 
+def save_skipped_asin(asin: str, categorie: str, reason: str = "RESTRICTED"):
+    """Sauvegarde un ASIN skippé (RESTRICTED/HAZMAT) pour ne plus le re-checker."""
+    client = get_client()
+    try:
+        client.table("skipped_asins").upsert(
+            {"asin": asin, "categorie": categorie, "reason": reason},
+            on_conflict="asin"
+        ).execute()
+    except Exception as e:
+        print(f"[skipped_asins] {asin}: {e}")
+
+
+def get_skipped_asins() -> set:
+    """Retourne tous les ASINs déjà skippés (RESTRICTED/HAZMAT)."""
+    client = get_client()
+    try:
+        resp = client.table("skipped_asins").select("asin").execute()
+        return {r["asin"] for r in (resp.data or [])}
+    except Exception:
+        return set()
+
+
 def save_eligible_asin(asin: str, categorie: str, brand: str = "", titre: str = ""):
     """Sauvegarde ou met à jour un ASIN ELIGIBLE dans le pool persistant (sans filtres Keepa)."""
     client = get_client()
