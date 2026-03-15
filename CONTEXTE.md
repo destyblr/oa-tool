@@ -54,7 +54,7 @@ OA/
 
 **Profil compte (`restrictions.json`) :**
 - is_new_account = true, 0 vente, 0 autorisation
-- Catégories accessibles (non-gatées) : Toys & Games, Sports & Outdoors, Kitchen, Home & Garden, Electronics, Pet Supplies, Office Products
+- Catégories accessibles (non-gatées) : Toys & Games, Sports & Outdoors, Kitchen, Home & Garden, Electronics, Pet Supplies
 - Catégories gatées interdites : Health & Beauty, Grocery, Baby, Jewelry, Watches, Clothing, Shoes, Handmade, Music, Video Games, Automotive, Industrial
 - restricted_brands : ~40 marques connues gatées/génériques
 - approved_brands : apprentissage automatique via selleramp_checker (marques confirmées ELIGIBLE)

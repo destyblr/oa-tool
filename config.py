@@ -14,7 +14,7 @@ SELLERAMP_PASSWORD = os.getenv("SELLERAMP_PASSWORD")
 
 # Catégories scannées
 CATEGORIES_TO_SCAN = [
-    "Kitchen", "Home & Garden", "Auto & Moto", "Office Products",
+    "Kitchen", "Home & Garden", "Auto & Moto", "Toys & Games",
     "Hygiène & Santé", "Luminaires",
 ]
 
@@ -45,7 +45,7 @@ REFERRAL_RATES = {
     "Kitchen": 0.15,
     "Home & Garden": 0.15,
     "Auto & Moto": 0.15,
-    "Office Products": 0.15,
+    "Toys & Games": 0.15,
     "Hygiène & Santé": 0.15,
     "Luminaires": 0.15,
     "default": 0.15,

@@ -36,7 +36,7 @@ EU_CATEGORY_IDS = {
     "DE": {
         "Kitchen":           3167641,
         "Auto & Moto":       78191031,    # Auto & Motorrad
-        "Office Products":   192416031,
+        "Toys & Games":      12950651,
         "Hygiène & Santé":   64187031,    # Drogerie & Körperpflege
         "Luminaires":        213083031,   # Beleuchtung
     },
