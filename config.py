@@ -15,7 +15,7 @@ SELLERAMP_PASSWORD = os.getenv("SELLERAMP_PASSWORD")
 # Catégories scannées
 CATEGORIES_TO_SCAN = [
     "Kitchen", "Home & Garden", "Auto & Moto", "Office Products",
-    "Bricolage", "Luminaires",
+    "Hygiène & Santé", "Luminaires",
 ]
 
 # Nombre max d'ASINs récupérés par catégorie (1 token Keepa ≈ 1 ASIN)
@@ -23,7 +23,7 @@ MAX_ASINS_PER_RUN = 50
 
 # --- BSR (classement des ventes) ---
 BSR_MIN = 1_000        # Minimum : évite produits ultra-compétitifs (trop de concurrence)
-BSR_MAX = 150_000      # Maximum : produits qui se vendent suffisamment
+BSR_MAX = 80_000       # Maximum : produits qui se vendent suffisamment
 
 # --- Buy Box prix (€) ---
 BUY_BOX_MIN = 15.0     # Min : évite les produits trop bas de gamme (marges trop faibles)
@@ -46,7 +46,7 @@ REFERRAL_RATES = {
     "Home & Garden": 0.15,
     "Auto & Moto": 0.15,
     "Office Products": 0.15,
-    "Bricolage": 0.15,
+    "Hygiène & Santé": 0.15,
     "Luminaires": 0.15,
     "default": 0.15,
 }
@@ -82,7 +82,7 @@ SHIPPING_RATES = {
 # Marketplaces
 MARKETPLACES = ["FR", "DE", "IT", "ES"]
 EFN_DESTINATIONS = ["DE", "IT", "ES"]
-ARBITRAGE_SPREAD_MIN = 15  # % écart minimum pour alerter
+ARBITRAGE_SPREAD_MIN = 10  # % écart minimum pour alerter
 
 # Seller Central
 SC_SESSION_PATH = "./credentials/sc_session.json"

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"from agents.acquisition_agent import AcquisitionAgent; print\\(''OK''\\)\")",
+      "Bash(python -c \"from agents.cross_border_agent import CrossBorderAgent; print\\(''OK''\\)\")",
+      "Bash(python -c \"from agents.team_leader_agent import TeamLeaderAgent; print\\(''OK''\\)\")",
+      "Bash(python main.py)",
+      "Bash(python -c \":*)"
+    ]
+  }
+}

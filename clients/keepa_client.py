@@ -19,7 +19,7 @@ KEEPA_CATEGORY_IDS = {
     "Home & Garden":   3557027031,  # Jardin
     "Auto & Moto":     1571265031,  # Auto et Moto
     "Office Products": 192419031,   # Fournitures de bureau
-    "Bricolage":       590748031,   # Bricolage
+    "Hygiène & Santé": 197861031,   # Hygiène et Santé
     "Luminaires":      213080031,   # Luminaires et Éclairage
 }
 

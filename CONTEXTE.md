@@ -18,9 +18,9 @@ OA/
 ### oa_tool/ — Pipeline Python
 
 **Flux principal (`main.py`) :**
-1. TeamLeaderAgent → vérifie tokens Keepa, décide la stratégie (skip/reduced/standard/full/full_eu)
-2. Agent 1 (Claude AI) → choisit catégories, cherche ASINs Keepa, collecte données FR
-3. Agent 1 (Python, automatique) → `_enrich_multimarket()` : fetch prix réels DE/IT/ES, calcule meilleure MP, arbitrage, score (désactivé si stratégie "reduced")
+1. TeamLeaderAgent → vérifie tokens Keepa, décide la stratégie (skip ou run)
+2. Agent 1 (Claude AI) → choisit catégories (rotation 7 cats), cherche ASINs Keepa, collecte données FR
+3. Agent 1 (Python, automatique) → `_enrich_multimarket()` : fetch prix réels DE/IT/ES, calcule meilleure MP, arbitrage, score (si tokens_left >= 3)
 4. Seller Central (Playwright, headless=False) → vérifie éligibilité ASIN
 5. Supabase → sauvegarde tous les deals Agent 1 (tableau Données brutes 100% complet)
 6. Agent 2 EU (Claude AI, si tokens >= 250) → sourcing natif sur DE/IT/ES, trouve produits EU > FR + 15%, sauvegarde opportunités cross-border séparément
@@ -101,10 +101,9 @@ Résultat : deals avec TOUS les champs remplis → Seller Central → Supabase
 
 Stratégie selon tokens Keepa :
 - < 30 : skip (affiche prochain run estimé)
-- 30-80 : Agent 1 réduit (pas multimarket)
-- 80-150 : Agent 1 standard
-- 150-250 : Agent 1 full avec multimarket
-- >= 250 : Agent 1 full + Agent 2 EU
+- >= 30 : Agent 1 (catégorie en rotation parmi 7 cats)
+- >= 250 : Agent 1 + Agent 2 EU
+Pas de stratégie "reduced" — `_enrich_multimarket` tourne toujours si tokens_left >= 3.
 Écrit `logs/run_log.json` (historique 100 derniers runs)
 
 ### Agent 2 — CrossBorderAgent v2 (`cross_border_agent.py`)
@@ -131,7 +130,8 @@ Stratégie selon tokens Keepa :
 - **Données brutes** : tableau complet, toutes colonnes remplies par Agent 1
 
 **Colonnes Données brutes :**
-Score | Statut | Titre | ASIN | Catégorie | BSR | Vend. FBA | Amazon | Buy Box FR | Moy 90j | Min 90j | Commission Amz | Traitement FBA | Envoi entrepôt | EFN | URSSAF | Total frais | Profit net | ROI FR | Meilleure MP | ROI meilleur | Gain vs FR | Arbitrage | Sourcing
+Score | Statut | Titre | ASIN | Catégorie | BSR | Vend. FBA | Amazon | Buy Box FR | Moy 90j | Min 90j | Arbitrage | Sourcing
+(Profit net, ROI FR, Meilleure MP, ROI meilleur supprimés — sans prix achat réel ces valeurs n'ont pas de sens)
 
 **Fichiers dashboard :**
 - `oa-supabase.js` — lecture deals Supabase, mapping, affichage tableau OA + Cross Border
@@ -226,13 +226,12 @@ CREATE TABLE IF NOT EXISTS runs (
 
 **Rapport :**
 - Encart "Dernier run" : statut, stratégie, deals, tokens, durée
-- Barre visuelle tokens (X/1440 max)
+- Barre visuelle tokens (X/60 max — bucket Keepa = 60, recharge 1/min)
 - Tableau 30 derniers runs, cliquable → détail (consignes Agent 1 + Agent 2 + erreur si applicable)
 
-**Toggles frais (Données brutes + Cross Border) :**
-- URSSAF (Avec/Sans) — persisté localStorage `oa_urssaf`
-- Prep fee (Avec/Sans) — persisté localStorage `oa_prep` + `oa_prep_fee`
-- Configurable dans Paramètres OA (recalcul immédiat)
+**Toggles frais :**
+- Les boutons "Avec URSSAF" et "Avec prep" ont été supprimés de l'interface OA
+- La logique reste en place (localStorage) mais sans bouton visible
 
 ## Ce qui est supprimé / mort
 

@@ -255,13 +255,13 @@ _EU_CATEGORY_IDS = {
         "Kitchen":           3167641,
         "Auto & Moto":       78191031,    # Auto & Motorrad
         "Office Products":   192416031,
-        "Bricolage":         80084031,    # Baumarkt
+        "Hygiène & Santé":   64187031,    # Drogerie & Körperpflege
         "Luminaires":        213083031,   # Beleuchtung
     },
     "IT": {
         "Kitchen":           524018031,
         "Auto & Moto":       2454170031,  # Auto e Moto
-        "Bricolage":         2454160031,  # Fai da te
+        "Hygiène & Santé":   1571286031,  # Salute e cura della persona
         "Luminaires":        1571292031,  # Illuminazione
     },
     "ES": {
