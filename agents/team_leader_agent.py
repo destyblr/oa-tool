@@ -134,14 +134,6 @@ class TeamLeaderAgent:
                 self.run_entry["tokens_used"]    = tokens - a.tokens_end
                 self.run_entry["strategy"]       = a.category_name  # confirme (peut différer si DB count a changé)
 
-                # Agent 3 : analyse IA des deals éligibles (0 token Keepa)
-                if self.run_entry["deals_eligible"] > 0:
-                    from agents.analysis_agent import AnalysisAgent
-                    a3 = AnalysisAgent()
-                    self.run_entry["deals_analysed"] = a3.run()
-                else:
-                    self.run_entry["deals_analysed"] = 0
-
             else:
                 from agents.cross_border_agent import CrossBorderAgent
                 a = CrossBorderAgent()
@@ -149,6 +141,12 @@ class TeamLeaderAgent:
                 self.run_entry["deals_cross_border"] = a.opportunities_saved
                 self.run_entry["tokens_after"]       = a.tokens_end
                 self.run_entry["tokens_used"]        = tokens - a.tokens_end
+
+            # Agent 3 : analyse IA des deals éligibles sans verdict (0 token Keepa)
+            from agents.analysis_agent import AnalysisAgent
+            a3 = AnalysisAgent()
+            nb_analysed = a3.run()
+            self.run_entry["deals_analysed"] = nb_analysed
 
             self.run_entry["status"] = "success"
 

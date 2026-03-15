@@ -156,6 +156,7 @@ def save_run(entry: dict):
     client = get_client()
     row = {
         "date":                entry.get("date"),
+        "agent":               entry.get("agent"),
         "tokens_before":       entry.get("tokens_before"),
         "tokens_after":        entry.get("tokens_after"),
         "tokens_used":         entry.get("tokens_used"),

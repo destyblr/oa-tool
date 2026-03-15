@@ -27,19 +27,32 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans texte autour."""
 def _build_prompt(deal: dict) -> str:
     moy = deal.get("buy_box_90j_moy_fr") or 0
     min90 = deal.get("buy_box_90j_min_fr") or 0
+    actuel = deal.get("buy_box_fr") or 0
     instabilite = round(((moy - min90) / moy * 100), 1) if moy > 0 else 0
+    tendance = round(((actuel - moy) / moy * 100), 1) if moy > 0 else 0
+    if tendance > 5:
+        tendance_label = f"↗️ Hausse (+{tendance}%)"
+    elif tendance < -5:
+        tendance_label = f"↘️ Baisse ({tendance}%)"
+    else:
+        tendance_label = f"→ Stable ({tendance}%)"
+
+    weight = deal.get("weight_g") or "?"
+    size_tier = deal.get("size_tier") or "?"
 
     return f"""Analyse ce produit Amazon FBA France et donne ton verdict.
 
 Données :
 - Titre : {deal.get('titre', '?')}
 - Catégorie : {deal.get('categorie', '?')}
-- BSR FR : {deal.get('bsr_fr', '?')} (top produit si < 10 000)
-- Buy Box actuel : {deal.get('buy_box_fr', '?')}€
+- BSR FR : {deal.get('bsr_fr', '?')}
+- Buy Box actuel : {actuel}€
 - Buy Box moy 90j : {moy}€
 - Buy Box min 90j : {min90}€ (instabilité prix : {instabilite}%)
+- Tendance prix : {tendance_label}
 - Vendeurs FBA : {deal.get('nb_vendeurs_fba', '?')}
 - Amazon vendeur : {deal.get('amazon_en_stock', False)}
+- Poids : {weight}g | Taille : {size_tier}
 - ROI estimé FR : {deal.get('roi_fr', '?')}%
 - Profit net estimé : {deal.get('profit_net_fr', '?')}€
 - Marketplace recommandée : {deal.get('marketplace_recommandee', 'FR')}
@@ -48,9 +61,9 @@ Données :
 - Score : {deal.get('score_deal', '?')}/100
 
 Critères :
-- BUY : ROI >= 25%, profit >= 3€, BSR < 50k, vendeurs FBA entre 2-10, prix stable (instabilité < 20%)
-- RISKY : ROI 15-25%, ou instabilité prix > 20%, ou 1 seul vendeur FBA (PL possible), ou BSR > 80k
-- SKIP : ROI < 15%, ou profit < 2€, ou Amazon vendeur, ou BSR > 120k
+- BUY : profit >= 5€ ET (ROI >= 20% OU profit >= 8€), BSR adapté à la catégorie (Kitchen/Home < 80k, Office/Luminaires < 50k, autres < 60k), 2-10 vendeurs FBA, prix stable (instabilité < 25%), tendance ≥ stable
+- RISKY : profit 3-5€, ou ROI 15-20%, ou instabilité 25-40%, ou tendance baissière > -10%, ou 1 vendeur FBA (PL possible), ou produit lourd (>2kg)
+- SKIP : profit < 3€, ou ROI < 15%, ou Amazon vendeur, ou tendance baissière > -15%, ou instabilité > 40%
 
 Réponds en JSON : {{"verdict": "BUY|RISKY|SKIP", "analyse": "1-2 phrases max en français expliquant pourquoi"}}"""
 
@@ -72,7 +85,6 @@ class AnalysisAgent:
                 client_sb.table("deals")
                 .select("*")
                 .eq("statut", "ELIGIBLE")
-                .gte("date_scan", today)
                 .is_("verdict", "null")
                 .order("score_deal", desc=True)
                 .limit(MAX_DEALS_PER_RUN)
