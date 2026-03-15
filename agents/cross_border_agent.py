@@ -35,7 +35,7 @@ from clients.supabase_client import get_client, get_category_page, set_category_
 EU_CATEGORY_IDS = {
     "DE": {
         "Kitchen":           3167641,
-        "Auto & Moto":       2528832031,  # Auto & Motorrad
+        "Auto & Moto":       78191031,    # Auto & Motorrad
         "Office Products":   192416031,
         "Bricolage":         80084031,    # Baumarkt
         "Luminaires":        213083031,   # Beleuchtung

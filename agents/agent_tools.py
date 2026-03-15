@@ -253,7 +253,7 @@ def tool_get_efn_fee_table() -> dict:
 _EU_CATEGORY_IDS = {
     "DE": {
         "Kitchen":           3167641,
-        "Auto & Moto":       2528832031,  # Auto & Motorrad
+        "Auto & Moto":       78191031,    # Auto & Motorrad
         "Office Products":   192416031,
         "Bricolage":         80084031,    # Baumarkt
         "Luminaires":        213083031,   # Beleuchtung
