@@ -29,7 +29,7 @@ from clients.keepa_client import (
     KEEPA_DOMAINS,
 )
 from utils.fees_calculator import calculate_total_fees, get_size_tier
-from clients.supabase_client import get_client, get_category_page, set_category_page
+from clients.supabase_client import get_client, get_category_page, set_category_page, get_skipped_asins, save_skipped_asin
 
 # IDs catégories Keepa par domaine EU
 EU_CATEGORY_IDS = {
@@ -63,6 +63,7 @@ class CrossBorderAgent:
         api.tokens_left = self.tokens_start
         print(f"[Agent 2] Tokens disponibles : {self.tokens_start}")
 
+        skipped_asins = get_skipped_asins()
         done = False
 
         for domain in ["DE", "IT", "ES"]:
@@ -121,9 +122,14 @@ class CrossBorderAgent:
                         done = True
                         break
 
+                    # Skip si déjà blacklisté
+                    if asin in skipped_asins:
+                        continue
+
                     # Check eligibility FR (0 token) — on source sur FR via EFN
                     statut = check_eligibility(asin)
                     if statut in ("RESTRICTED", "HAZMAT"):
+                        save_skipped_asin(asin, cat_name, statut)
                         continue
 
                     # Fetch prix EU (1 token)
