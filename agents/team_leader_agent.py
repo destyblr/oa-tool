@@ -59,13 +59,7 @@ def _check_tokens() -> int:
 # ── Quel agent lancer ? ───────────────────────────────────────────────────────
 
 def _next_agent() -> str:
-    """Retourne 'agent1' ou 'agent2' selon le dernier run réussi."""
-    entries = _load_log()
-    successful = [e for e in entries if e.get("status") in ("success", "no_deals")]
-    if successful:
-        last = successful[-1]
-        if last.get("agent") == "agent1":
-            return "agent2"
+    """Retourne toujours 'agent1' — Agent 2 (cross-border) désactivé temporairement."""
     return "agent1"
 
 
@@ -82,7 +76,6 @@ class TeamLeaderAgent:
             "tokens_used":        None,
             "deals_found":        0,
             "deals_eligible":     0,
-            "deals_cross_border": 0,
             "status":             "pending",
             "error":              None,
             "duree_secondes":     None,
@@ -134,14 +127,6 @@ class TeamLeaderAgent:
                 self.run_entry["tokens_used"]    = tokens - a.tokens_end
                 self.run_entry["strategy"]       = a.category_name  # confirme (peut différer si DB count a changé)
 
-            else:
-                from agents.cross_border_agent import CrossBorderAgent
-                a = CrossBorderAgent()
-                a.run()
-                self.run_entry["deals_cross_border"] = a.opportunities_saved
-                self.run_entry["tokens_after"]       = a.tokens_end
-                self.run_entry["tokens_used"]        = tokens - a.tokens_end
-
             # Agent 3 : analyse IA des deals éligibles sans verdict (0 token Keepa)
             from agents.analysis_agent import AnalysisAgent
             a3 = AnalysisAgent()
@@ -151,21 +136,14 @@ class TeamLeaderAgent:
             self.run_entry["status"] = "success"
 
             # Notif succès
-            if agent == "agent1":
-                analysed = self.run_entry.get("deals_analysed", 0)
-                msg = (
-                    f"[OA Tool] Agent 1 termine\n"
-                    f"Deals : {self.run_entry['deals_found']} | "
-                    f"Eligibles : {self.run_entry['deals_eligible']} | "
-                    f"Analyses IA : {analysed}\n"
-                    f"Tokens : {tokens} -> {self.run_entry['tokens_after']}"
-                )
-            else:
-                msg = (
-                    f"[OA Tool] Agent 2 termine\n"
-                    f"Opportunites cross-border : {self.run_entry['deals_cross_border']}\n"
-                    f"Tokens : {tokens} -> {self.run_entry['tokens_after']}"
-                )
+            analysed = self.run_entry.get("deals_analysed", 0)
+            msg = (
+                f"[OA Tool] Agent 1 termine\n"
+                f"Deals : {self.run_entry['deals_found']} | "
+                f"Eligibles : {self.run_entry['deals_eligible']} | "
+                f"Analyses IA : {analysed}\n"
+                f"Tokens : {tokens} -> {self.run_entry['tokens_after']}"
+            )
             send_telegram(msg)
             print(f"\n[TeamLeader] {msg}")
 
