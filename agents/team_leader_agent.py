@@ -93,7 +93,6 @@ class TeamLeaderAgent:
         if tokens < MIN_TOKENS:
             msg = f"[OA Tool] Skip — seulement {tokens} tokens disponibles (min {MIN_TOKENS})."
             print(msg)
-            send_telegram(msg)
             self.run_entry["status"] = "skipped"
             self._save()
             return
@@ -110,11 +109,7 @@ class TeamLeaderAgent:
             self.run_entry["strategy"] = cat_name
             print(f"[TeamLeader] Catégorie : {cat_name}")
 
-        # 5. Notif Telegram démarrage
-        send_telegram(
-            f"[OA Tool] Démarrage {agent.upper()}\n"
-            f"Tokens : {tokens}/60"
-        )
+        # 5. Pas de notif démarrage (notif uniquement si résultats)
 
         try:
             if agent == "agent1":
@@ -144,8 +139,9 @@ class TeamLeaderAgent:
                 f"Analyses IA : {analysed}\n"
                 f"Tokens : {tokens} -> {self.run_entry['tokens_after']}"
             )
-            send_telegram(msg)
             print(f"\n[TeamLeader] {msg}")
+            if self.run_entry['deals_eligible'] > 0:
+                send_telegram(msg)
 
         except Exception as e:
             self.run_entry["status"] = "error"
