@@ -93,32 +93,59 @@ def generate_shopping_link(titre: str, asin: str) -> str:
 
 
 def calculate_score(deal: Deal) -> int:
-    """Score de 0 à 100 basé sur BSR, ROI et nombre de vendeurs."""
+    """Score marché /70 basé sur BSR, concurrence, stabilité et tendance prix."""
     score = 0
 
+    # 1. Demande (BSR) — /25
     if deal.bsr_fr:
         if deal.bsr_fr < 5000:
-            score += 40
-        elif deal.bsr_fr < 20000:
-            score += 30
+            score += 25
+        elif deal.bsr_fr < 15000:
+            score += 20
+        elif deal.bsr_fr < 30000:
+            score += 15
         elif deal.bsr_fr < 50000:
-            score += 20
+            score += 10
+        elif deal.bsr_fr < 80000:
+            score += 5
 
-    if deal.roi_meilleur:
-        if deal.roi_meilleur >= 50:
-            score += 40
-        elif deal.roi_meilleur >= 35:
-            score += 30
-        elif deal.roi_meilleur >= 25:
-            score += 20
-
+    # 2. Concurrence (vendeurs FBA + Amazon) — /25
     if deal.nb_vendeurs_fba:
         if deal.nb_vendeurs_fba <= 3:
             score += 20
+        elif deal.nb_vendeurs_fba <= 5:
+            score += 15
         elif deal.nb_vendeurs_fba <= 8:
             score += 10
+        else:
+            score += 5
+    if not deal.amazon_en_stock:
+        score += 5
 
-    return min(score, 100)
+    # 3. Stabilité prix — /15
+    moy = deal.buy_box_90j_moy_fr or 0
+    min90 = deal.buy_box_90j_min_fr or 0
+    if moy > 0:
+        instab = (moy - min90) / moy * 100
+        if instab < 10:
+            score += 15
+        elif instab < 20:
+            score += 10
+        elif instab < 30:
+            score += 5
+
+    # 4. Tendance prix — /10
+    actuel = deal.buy_box_fr or 0
+    if moy > 0 and actuel > 0:
+        tendance = (actuel - moy) / moy * 100
+        if tendance > 5:
+            score += 10   # hausse
+        elif tendance >= -5:
+            score += 7    # stable
+        elif tendance >= -10:
+            score += 3    # baisse légère
+
+    return min(score, 70)
 
 
 def detect_arbitrage(deal: Deal) -> tuple:
