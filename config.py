@@ -33,7 +33,7 @@ BUY_BOX_MAX = 200.0    # Max : budget achat raisonnable
 BUY_BOX_90J_MIN = 15.0 # Stabilité du prix : évite produits dont le prix s'effondre
 
 # --- Vendeurs FBA ---
-FBA_SELLERS_MIN = 1    # Min : au moins 1 FBA (produit actif sur Amazon)
+FBA_SELLERS_MIN = 2    # Min : 2+ FBA (1 seul = probable Private Label → risque IP)
 FBA_SELLERS_MAX = 15   # Max : pas trop de concurrence
 
 # --- Amazon comme vendeur ---
